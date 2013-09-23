@@ -6,8 +6,8 @@ function cidre(source, varargin)
 % Usage:  MODEL = cidre(source, ...)
 %
 % Input:  SOURCE can be a path to a folder containing images, a path with a
-%                filter (eg "/images/*.tif"), or an RxCxZ array containing 
-%                the images to be corrected (R = height, C = width, Z = 
+%                filter (eg "/images/*.tif"), or an RxCxN array containing 
+%                the images to be corrected (R = height, C = width, N = 
 %                number of images).
 %
 %                Optional arguments pairs can override default parameters.
@@ -40,9 +40,8 @@ options = cdr_parseInputs(varargin);
 options
 
 % load the data, either from a folder or from a passed array
-
-
-
+[STACK options] = cdr_loadImages(source, options);
+options
 
 
 
