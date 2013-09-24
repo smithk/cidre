@@ -90,9 +90,7 @@ if ischar(source)
     t1 = tic;
     S = zeros([options.working_size options.num_images_provided]);
     for z = 1:options.num_images_provided
-        if mod(z,100) == 0
-            fprintf('.');
-        end
+        if mod(z,100) == 0; fprintf('.'); end  % progress to the command line
         I = imread([options.source_folder options.filenames{z}]);
         I = double(I);
         maxI = max(maxI, max(I(:)));
@@ -116,15 +114,21 @@ else
     % store the number of source images provided in the stack
     options.num_images_provided = size(source,3);    
     
+    % give some feedback to the command line
+    fprintf(' Image stack passed as an argument (%d images). Resizing\n .', options.num_images_provided);
+    t1 = tic;
+    
     % resize each element of the stack to the working image size
-    maxI = max(source(:));
+    if isempty(options.bit_depth); maxI = max(source(:)); end   % if bit depth is not provided, we need maxI to estimate it
     S = zeros([options.working_size options.num_images_provided]);
     for z = 1:options.num_images_provided
+        if mod(z,100) == 0; fprintf('.'); end  % progress to the command line
         I = source(:,:,z);
         I = double(I);
         Irescaled = imresize(I, options.working_size);
         S(:,:,z) = Irescaled;
     end
+    fprintf('finished in %1.2fs.\n', toc(t1));
 end
 
 
