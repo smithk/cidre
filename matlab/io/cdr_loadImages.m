@@ -86,7 +86,7 @@ if ischar(source)
     
     % read the source filenames in, covert them to the working image size, 
     % and add them to the stack    
-    fprintf(' Reading images from %s\n .', options.source_folder);
+    fprintf(' Reading %d images from %s\n .', options.num_images_provided, options.source_folder);
     t1 = tic;
     S = zeros([options.working_size options.num_images_provided]);
     for z = 1:options.num_images_provided
@@ -141,11 +141,11 @@ S = scale_space_resampling(S,entropy); 	% resample the stack if the entropy is t
 % The new S has the same data as before, but sorted in ascending order in
 % the 3rd dimension.
 t1 = tic;
-fprintf(' Sorting intensity by pixel location and compressing...');
+fprintf(' Sorting intensity by pixel location and resizing...');
 S = sort(S,3);
 
 %% compress the stack: reduce the effective number of images for efficiency
-% STACK = compressStack(STACK,sorted_regions);
+S = resizeStack(S, options);
 fprintf('finished in %1.2fs.\n', toc(t1));
 
 
@@ -233,10 +233,15 @@ fprintf(' Entropy of the stack = %1.2f\n', H);
 
 
 
-function BIGS = scale_space_resampling(S,entropy)
-% if the entropy is very low indicating that there is are many regions with 
-% little useful information, we can leverage information from neighboring
-% locations by resampling across the scale space
+function S2 = scale_space_resampling(S,entropy)
+% uses scale space resampling to compensate for regions with little
+% intensity information. if the entropy is very low, this indicates that 
+% some (or many) have regions little useful information. resampling from
+% a scale space transform allows us to leverage information from 
+% neighboring locations. For example, in low confluency fluorescence images
+% without a fluorescing medium, the background pixels contain nearly zero 
+% contribution from incident light and do not provide useful information.
+
 
 
 l0      = 1;            % max lambda_vreg
@@ -289,7 +294,7 @@ max_i = max([max_i 1]);
 % join the octaves from the scale space reduction from i=1 until i=max_i. 
 if max_i > 1
     fprintf(' Applying scale-space resampling\n');
-    BIGS = zeros(R1,C1);
+    S2 = zeros(R1,C1);
     for i = 1:max_i 
         R = size(SCALE{i},1);
         C = size(SCALE{i},2);
@@ -299,10 +304,56 @@ if max_i > 1
 
         fprintf('  octave=1/%d  size=%dx%d  (image %d to %d)\n', 2^(i-1), R, C,ind1,ind2);
         S_RESIZE = imresize(SCALE{i}, [R1 C1]);
-        BIGS(:,:,ind1:ind2) = S_RESIZE;
+        S2(:,:,ind1:ind2) = S_RESIZE;
     end
 else
     fprintf(' Scale-space resampling NOT APPLIED (alpha = %d)\n', alpha);
-    BIGS = SCALE{1};
+    S2 = SCALE{1};
 end
+
+
+
+function S2 = resizeStack(S, options)
+% in order keep CIDRE computationally tractable and to ease parameter 
+% setting, we reduce the 3rd dimension of the sorted stack S to Z = 200. 
+% Information is not discarded in the process, but several slices from the 
+% stack are averaged into a single slice in the process.
+
+% get the original dimensions of S
+R = size(S,1);
+C = size(S,2);
+Z = size(S,3);
+
+% if Z < options.number_of_quantiles, we do not want to further compress
+% the data. leave S as is.
+if Z <= options.number_of_quantiles
+    %fprintf('Warning: number of images (%d) is less than sorted_regions (%d)\n', Z, sorted_regions);
+    S2 = S;
+
+% otherwise, we will reduce the 3rd dimension of S to be options.number_of_quantiles    
+else    
+    % find regionLimits, a set of indexes that breaks Z into
+    % options.number_of_quantiles evenly space pieces
+    Zmin = 1;
+    Zmax = Z;
+    Zdiff = Zmax - Zmin;
+    regionLimits(1,1) = 1; regionLimits(1,2) = round(  Zmin +  Zdiff*(1/options.number_of_quantiles));
+    for i = 2:options.number_of_quantiles
+        regionLimits(i,1) = round(Zmin + Zdiff*( (i-1)/options.number_of_quantiles)) + 1;
+        regionLimits(i,2) = round(Zmin + Zdiff*(i/options.number_of_quantiles));
+    end
+    
+    % compute the mean image of each region of S defined by regionLimits,
+    % and add the mean image to S2
+    S2 = zeros(R,C,options.number_of_quantiles);
+    for i = 1:options.number_of_quantiles
+        I = mean(S(:,:,regionLimits(i,1):regionLimits(i,2)),3);
+        S2(:,:,i) = I;
+    end
+end
+    
+    
+  
+
+
 

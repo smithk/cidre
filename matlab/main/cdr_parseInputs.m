@@ -4,12 +4,14 @@ function options = cdr_parseInputs(v)
 % 
 % Usage:  OPTIONS = parseInputs(v)
 %
-% Input:  v - a cell containing arguments from the cidre.m (from varargin)
+% Input:  V a cell containing arguments from the cidre.m (from varargin)
 %
-% Output: OPTIONS - a structure containing various parameter values needed by
-%        CIDRE
+% Output: OPTIONS a structure containing various parameter values needed by
+%         CIDRE
 %
 % See also: cidre, cidreGui
+
+
 
 
 %% options that may be specified by the user
@@ -28,6 +30,8 @@ options.bit_depth               = [];   % specified as bit max: 2^8, 2^12, 2^16
 options.targetNumPixels         = 9400;
 options.working_size            = [];
 options.number_of_quantiles     = 200;
+
+
 
 
 
