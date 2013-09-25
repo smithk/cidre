@@ -1,4 +1,4 @@
-cidre
+CIDRE
 =====
 
 About
@@ -7,7 +7,7 @@ A general illumination correction method for optical microscopy.
 
 Contents
 --------
-/matlab        - a standalone Matlab implementation of CIDRE with a GUI interface
+''matlab''        - a standalone Matlab implementation of CIDRE with a GUI interface
 
 /cellprofiler  - a CellProfiler module implementation of CIDRE
 
