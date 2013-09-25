@@ -1,10 +1,12 @@
 cidre
 =====
 
+About
+-----
 A general illumination correction method for optical microscopy.
 
-Contents:
-
+Contents
+--------
 /matlab        - a standalone Matlab implementation of CIDRE with a GUI interface
 
 /cellprofiler  - a CellProfiler module implementation of CIDRE
@@ -14,7 +16,7 @@ Contents:
 /imagej        - an ImageJ plugin implementation of CIDRE
 
 
-
+============
 
 Copyright © 2013 Kevin Smith and Peter Horvath, Light Microscopy and Screening 
 Centre (LMSC), Swiss Federal Institute of Technology Zurich (ETHZ), Switzerland. 
