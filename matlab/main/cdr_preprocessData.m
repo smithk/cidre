@@ -1,7 +1,6 @@
 function [S options] = cdr_preprocessData(S, maxI, options)  
-% Loads the raw images into a STACK of images, or accepts a stack of images
-% passed as an argument. Performs resizing, sorting, and compressing of the
-% image data to keep the model generation fast.
+% Performs resizing, sorting, and compressing of previously loaded image 
+% data, S, to increase robustness and ensure the model generation is fast.
 % 
 % Usage:  [S options] = cdr_loadImages(S, maxI, options) 
 %

@@ -13,6 +13,7 @@ function cidre(source, varargin)
 %                Optional arguments pairs can override default parameters.
 %
 % Output: MODEL  a structure containing the correction model used by CIDRE
+%                to correct the source images
 %        
 %
 % See also: cidreGui
@@ -37,12 +38,14 @@ addpath 3rdparty/ gui/ io/ main/
 
 % parse the input arguments, return a structure containing parameters
 options = cdr_parseInputs(varargin);
-options
 
 % load the data, either from a folder or from a passed array
-[STACK options] = cdr_loadImages(source, options);
+[S options] = cdr_loadImages(source, options);
 options
 
+[model options] = cdr_cidreModel(S,options);
+
+keyboard;
 
 
 
