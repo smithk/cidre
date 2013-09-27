@@ -30,7 +30,12 @@ function cidre(source, varargin)
 % distributed WITHOUT ANY WARRANTY; without even the implied warranty of 
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
 % General Public License for more details.
-
+%
+% This software includes a subdirectory "3rdparty" which contains minFunc,
+% 3rd party software implementing L-BFGS. MinFunc is licensed under a 
+% Creative Commons, Attribute, Non-Commercial license. If you need to use 
+% this software for commercial purposes, you can replace minFunc with 
+% other software such as fminlbfgs, which may be slower.
 
 
 % add necessary paths
