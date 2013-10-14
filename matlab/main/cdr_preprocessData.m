@@ -65,7 +65,7 @@ else
     else
         options.bit_depth = 2^8;
     end    
-    fprintf(' %d-bit depth (estimated from max intensity=%1.0f)\n', log2(options.bit_depth), maxI);
+    fprintf(' %d-bit depth images (estimated from max intensity=%1.0f)\n', log2(options.bit_depth), maxI);
 end
 
 
@@ -96,7 +96,7 @@ P(P == 0) = []; % In the case of p(xi) = 0 for some i, the value of the
                 % corresponding sum and 0 logb(0) is taken to be 0
 temp = P .* log2(P);
 H = -sum(temp);
-fprintf(' Entropy of the stack = %1.2f\n', H);
+%fprintf(' Entropy of the stack = %1.2f\n', H);
 
 
 
@@ -161,7 +161,7 @@ max_i = max([max_i 1]);
 
 % join the octaves from the scale space reduction from i=1 until i=max_i. 
 if max_i > 1
-    fprintf(' Applying scale-space resampling\n');
+    fprintf(' Applying scale-space resampling (intensity information is low)\n');
     S2 = zeros(R1,C1);
     for i = 1:max_i 
         R = size(SCALE{i},1);
@@ -175,7 +175,7 @@ if max_i > 1
         S2(:,:,ind1:ind2) = S_RESIZE;
     end
 else
-    fprintf(' Scale-space resampling NOT APPLIED (alpha = %d)\n', alpha);
+    %fprintf(' Scale-space resampling NOT APPLIED (alpha = %d)\n', alpha);
     S2 = SCALE{1};
 end
 

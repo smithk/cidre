@@ -1,4 +1,4 @@
-function cidre(source, varargin)
+function model = cidre(source, varargin)
 % A general illumination correction method for optical microscopy. Should
 % be applied to collections of images. Images must be monochromatic. Multi-
 % channel images should be separated and each channel corrected separately.
@@ -46,11 +46,11 @@ options = cdr_parseInputs(varargin);
 
 % load the data, either from a folder or from a passed array
 [S options] = cdr_loadImages(source, options);
-options
 
+% learn the illumination correction model from processed data stack, S
 [model options] = cdr_cidreModel(S,options);
 
-keyboard;
-
+% correct the source images, if requested
+cdr_correct(model,options);
 
 
