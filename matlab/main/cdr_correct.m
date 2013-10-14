@@ -11,9 +11,9 @@ function cdr_correct(model,options)
 %        OPTIONS  a data structure containing the various parameters values
 %                 required by CIDRE. The correction mode option has 3
 %                 possible values:
-%                 0 ='illumination preserving' (default), 
-%                 1='zero-light_perserving', or 
-%                 2='direct'
+%                 0 = 'intensity range preserving' (default), 
+%                 1 = 'zero-light perserving', or 
+%                 2 = 'direct'
 %
 % Output:         Stores corrected images to the destination folder
 %                 specified in options.
@@ -36,9 +36,25 @@ if isempty(options.correction_mode)
 end
 
 
+
+% save the correction model to the destination folder
+filename = sprintf('%s%s', options.folder_destination, 'cidre_model.mat');
+save(filename, 'model', 'options');
+fprintf(' Saved the correction model to %s\n', filename);
+
+
+
 % loop through all the source images, correct them, and write them to the 
 % destination folder
-fprintf(' Writing corrected images to %s\n ', options.folder_destination);
+switch options.correction_mode
+    case 0
+        str = 'intensity range preserved';
+    case 1
+        str = 'zero-light preserved';
+    case 2
+        str = 'direct';
+end
+fprintf(' Writing %s corrected images to %s\n ', upper(str), options.folder_destination);
 t1 = tic;
 for z = 1:options.num_images_provided
     if mod(z,100) == 0; fprintf('.'); end  % progress to the command line
@@ -48,7 +64,7 @@ for z = 1:options.num_images_provided
     
     % check which type of correction we want to do
     switch options.correction_mode
-        case 0  %'illumination_preserving'
+        case 0  %'intensity range _preserving'
             Icorrected = ((I - model.z)./model.v) * mean(model.v(:))  + mean(model.z(:));
                     
         case 1 % 'zero-light_preserving'
@@ -72,9 +88,6 @@ end
 
 fprintf(' finished in %1.2fs.\n', toc(t1));
 
-% save the correction model to the destination folder
-filename = sprintf('%s%s', options.folder_destination, 'cidre_model.mat');
-save(filename, 'model', 'options');
-fprintf(' Saved the correction model to %s\n', filename);
+
 
 
