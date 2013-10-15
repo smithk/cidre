@@ -87,7 +87,7 @@ b0 = b0 + PivotShiftX*v0 - PivotShiftY;
 
 
 
-fprintf(' Optimizing using the following parameters\n lambda_v  = %1.2f\n lambda_z  = %1.2f\n q_percent = %1.2f\n (this may take a few minutes)\n', options.lambda_vreg, options.lambda_zero, options.q_percent);
+fprintf(' Optimizing using the following parameters:\n lambda_v  = %1.2f\n lambda_z  = %1.2f\n q_percent = %1.2f\n (this may take a few minutes)\n', options.lambda_vreg, options.lambda_zero, options.q_percent);
 t1 = tic;
 
 
@@ -168,7 +168,7 @@ model.z_small   = z;
 
 
 
-fprintf(' finished in %1.2fs.\n', toc(t1));
+fprintf(' Finished in %1.2fs.\n', toc(t1));
 
 
 

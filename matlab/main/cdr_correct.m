@@ -11,8 +11,8 @@ function cdr_correct(model,options)
 %        OPTIONS  a data structure containing the various parameters values
 %                 required by CIDRE. The correction mode option has 3
 %                 possible values:
-%                 0 = 'intensity range preserving' (default), 
-%                 1 = 'zero-light perserving', or 
+%                 0 = 'zero-light perserved' (default), 
+%                 1 = 'dynamic range corrected', or 
 %                 2 = 'direct'
 %
 % Output:         Stores corrected images to the destination folder
@@ -48,9 +48,9 @@ fprintf(' Saved the correction model to %s\n', filename);
 % destination folder
 switch options.correction_mode
     case 0
-        str = 'intensity range preserved';
+        str = 'zero-light perserved';
     case 1
-        str = 'zero-light preserved';
+        str = 'dynamic range corrected';
     case 2
         str = 'direct';
 end
