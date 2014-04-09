@@ -63,7 +63,6 @@ v0  = ones(options.working_size);
 b0  = ones(options.working_size);  
 zx0 = .85 * STACKMIN;
 zy0 = .85 * STACKMIN;
-
 % get an estimate of Q, the underlying intensity distribution
 Q  = estimateQ(S,options.q_percent);
 
@@ -168,7 +167,7 @@ model.z_small   = z;
 
 
 
-fprintf(' Finished in %1.2fs.\n', toc(t1));
+fprintf(' Finished in %1.2fs with %d iterations.\n', toc(t1), ITER);
 
 
 

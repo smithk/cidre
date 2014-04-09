@@ -227,8 +227,8 @@ end
 G = [G_V(:); G_B(:); G_ZX; G_ZY];
 %--------------------------------------------------------------------------
 
-
-%fprintf('iter = %d  %s %s    zx,zy=(%1.2f,%1.2f)    v(loc)=%1.3f   b(loc)=%1.3f  E=%g\n', ITER, MESTIMATOR, term_str, zx,zy,v_img(loc(1),loc(2)),b_img(loc(1),loc(2)), E);
+% loc = [10 10];
+% fprintf('iter = %d  %s %s    zx,zy=(%1.2f,%1.2f)    v(loc)=%1.3f   b(loc)=%1.3f  E=%g\n', ITER, MESTIMATOR, term_str, zx,zy,v_img(loc(1),loc(2)),b_img(loc(1),loc(2)), E);
 ITER = ITER + 1;
 
 

@@ -96,7 +96,7 @@ P(P == 0) = []; % In the case of p(xi) = 0 for some i, the value of the
                 % corresponding sum and 0 logb(0) is taken to be 0
 temp = P .* log2(P);
 H = -sum(temp);
-%fprintf(' Entropy of the stack = %1.2f\n', H);
+fprintf(' Entropy of the stack = %1.2f\n', H);
 
 
 
@@ -175,7 +175,7 @@ if max_i > 1
         S2(:,:,ind1:ind2) = S_RESIZE;
     end
 else
-    %fprintf(' Scale-space resampling NOT APPLIED (alpha = %d)\n', alpha);
+    fprintf(' Scale-space resampling NOT APPLIED (alpha = %d)\n', alpha);
     S2 = SCALE{1};
 end
 
@@ -197,6 +197,7 @@ Z = size(S,3);
 if Z <= options.number_of_quantiles
     %fprintf('Warning: number of images (%d) is less than sorted_regions (%d)\n', Z, sorted_regions);
     S2 = S;
+    options.number_of_quantiles = Z;
 
 % otherwise, we will reduce the 3rd dimension of S to be options.number_of_quantiles    
 else    

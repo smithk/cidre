@@ -69,6 +69,11 @@ if ischar(source)
         
     end
     
+    % check if we have found any valid files in the folder
+    if numel(options.filenames) == 0
+        error('CIDRE:loadImages', 'No files found.'); 
+    end
+    
     % store the number of source images into the options structure
     options.num_images_provided = numel(options.filenames);
     
