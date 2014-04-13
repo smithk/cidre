@@ -21,6 +21,7 @@ This project contains several folders:
 Installation
 ------------
 
+To install the ImageJ plugin, simply copy `Cidre_Plugin.jar` to the plugins folder of your ImageJ or Fiji installation.
 
 ============
 
