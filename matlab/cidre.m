@@ -68,7 +68,9 @@ function model = cidre(source, varargin)
 
 
 % add necessary paths
-addpath 3rdparty/ gui/ io/ main/
+if (~isdeployed)
+    addpath 3rdparty/ gui/ io/ main/
+end
 
 % parse the input arguments, return a structure containing parameters
 options = cdr_parseInputs(varargin);
