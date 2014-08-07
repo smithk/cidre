@@ -87,8 +87,6 @@ end
 options = cdr_parseInputs(varargin);
 options.cidrePath = p;
 
-options
-
 cdr_gui_toggle(options)
 
 % load the data, either from a folder or from a passed array
