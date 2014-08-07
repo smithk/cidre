@@ -86,6 +86,7 @@ end
 % parse the input arguments, return a structure containing parameters
 options = cdr_parseInputs(varargin);
 options.cidrePath = p;
+options;
 
 cdr_gui_toggle(options)
 
