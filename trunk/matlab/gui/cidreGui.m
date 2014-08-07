@@ -300,11 +300,11 @@ switch contents{get(hObject,'Value')}
     case 'auto'
         handles.bit_depth = [];
     case '8-bit'
-        handles.bit_depth = 8;
+        handles.bit_depth = 2^8;
     case '12-bit'
-        handles.bit_depth = 12;
+        handles.bit_depth = 2^12;
     case '16-bit'
-        handles.bit_depth = 16;
+        handles.bit_depth = 2^16;
 end
 guidata(hObject, handles);
 
