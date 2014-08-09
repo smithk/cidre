@@ -22,7 +22,7 @@ function varargout = cidreGui(varargin)
 
 % Edit the above text to modify the response to help cidreGui
 
-% Last Modified by GUIDE v2.5 07-Aug-2014 01:45:26
+% Last Modified by GUIDE v2.5 09-Aug-2014 18:05:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,7 +62,7 @@ handles.Zlimits = [];
 handles.bit_depth = [];
 handles.q_percent = 0.25;
 handles.lbfgs_iterations = 500;
-handles.correction_mode = 2;
+handles.correction_mode = 0;
 handles.destination_folder = [];
 if ispc()
     handles.source_folder = [pwd '\*.tif'];
@@ -535,6 +535,61 @@ set(handles.edit_destination_folder, 'String', dname);
 handles.destination_folder = dname;
 guidata(hObject, handles);
 
+% --- Executes on button press in checkbox_v.
+function checkbox_v_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_v (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_v
+
+state = get(hObject, 'Value');
+
+if state
+    set(handles.sliderV, 'Visible', 'off');
+    set(handles.editV, 'Visible', 'off');
+    set(handles.text2, 'Visible', 'off');
+    set(handles.text1, 'Visible', 'off');
+    handles.lambdaV = [];
+else
+    set(handles.sliderV, 'Visible', 'on');
+    set(handles.editV, 'Visible', 'on');
+    set(handles.text2, 'Visible', 'on');
+    set(handles.text1, 'Visible', 'on');
+    handles.lambdaV = get(handles.sliderV, 'Value');
+end
+
+guidata(hObject, handles);
+
+
+
+
+% --- Executes on button press in checkbox_z.
+function checkbox_z_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_z (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_z
+
+state = get(hObject, 'Value');
+
+if state
+    set(handles.sliderZ, 'Visible', 'off');
+    set(handles.editZ, 'Visible', 'off');
+    set(handles.text3, 'Visible', 'off');
+    set(handles.text4, 'Visible', 'off');
+    handles.lambdaZ = [];
+else
+    set(handles.sliderZ, 'Visible', 'on');
+    set(handles.editZ, 'Visible', 'on');
+    set(handles.text3, 'Visible', 'on');
+    set(handles.text4, 'Visible', 'on');
+    handles.lambdaZ = get(handles.sliderZ, 'Value');
+end
+
+guidata(hObject, handles);
+
 
 
 
@@ -589,7 +644,7 @@ end
 param_str{end+1} = handles;
 
 
-
+param_str
 model = cidre(handles.source_folder, param_str);
 
 
@@ -599,4 +654,5 @@ guidata(hObject, handles);
 
 
 % 185 187 confocal
+
 

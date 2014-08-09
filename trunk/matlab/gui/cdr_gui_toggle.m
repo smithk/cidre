@@ -37,7 +37,7 @@ if isstruct(options.handles)
         set(handles.text1, 'Visible', 'off');
         set(handles.sliderV, 'Visible', 'off');
         set(handles.pushbutton_call_Cidre, 'Visible', 'off');
-        set(handles.text_processing, 'Visible', 'on');
+        set(handles.text_processing, 'Visible', 'on');        
         guidata(handles.figure1, handles);
         drawnow;
     else
@@ -72,6 +72,8 @@ if isstruct(options.handles)
         set(handles.sliderV, 'Visible', 'on');
         set(handles.pushbutton_call_Cidre, 'Visible', 'on');
         set(handles.text_processing, 'Visible', 'off');
+        set(handles.checkbox_v,'Value', 0);
+        set(handles.checkbox_z,'Value', 0);
         guidata(handles.figure1, handles);
         drawnow;
     end

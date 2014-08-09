@@ -126,7 +126,12 @@ N_required = a*exp(b*entropy) + c;
 % (N > N_required). It informs us how strong the scale space resampling
 % should be. alpha=1 means strong resampling, alpha=0 skips resampling
 if N < N_required
+    warnmsg = sprintf(' Warning: less than recommended number\n of images provided (%d < %d) for the\n observed image entropy=%1.2f.\n\n Using scale-space resampling to compensate.', N, round(N_required), entropy);
+    warndlg(warnmsg);
+    fprintf('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n%s\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n', warnmsg);
     alpha = l0 + ((l1-l0)/(N_required)) * N;
+    refresh;
+    pause(0.1);
 else
     alpha = l1;
 end
