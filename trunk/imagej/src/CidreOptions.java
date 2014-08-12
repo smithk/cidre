@@ -10,8 +10,10 @@ public class CidreOptions
 	public Double lambdaZero = null;
 	public Integer maxLbgfsIterations = null;
 	public Double qPercent = null;
+	public Double[] zLimits = new Double[2];
 	public Dimension imageSize;
 	public String folderSource;
+	public String fileFilterSource;
 	public String folderDestination;
 	public List<String> fileNames = new ArrayList<String>();
 	public int numImagesProvided;
@@ -19,6 +21,5 @@ public class CidreOptions
 	public CorrectionMode correctionMode = null;
 	public int targetNumPixels = 9400;
 	public Dimension workingSize;
-	public int numberOfQuantiles = 200;
-	
+	public int numberOfQuantiles = 200;	
 }

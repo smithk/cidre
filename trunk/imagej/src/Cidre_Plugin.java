@@ -5,14 +5,9 @@ import ij.plugin.PlugIn;
 import ij.plugin.frame.PasteController;
 import ij.process.ImageProcessor;
 
-import java.awt.Button;
-import java.awt.Checkbox;
-import java.awt.CheckboxGroup;
+import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.Label;
-import java.awt.Scrollbar;
-import java.awt.TextField;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
@@ -26,22 +21,32 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.regex.Pattern;
 
+import javax.swing.AbstractButton;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollBar;
+import javax.swing.JTextField;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 
-public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, AdjustmentListener, ItemListener {
+public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, AdjustmentListener, ItemListener {
 
 	private static final long serialVersionUID = 1L;
-	private static Frame instance;
-
-	private String[] validFileTypes = new String[]
-			{".bmp", ".gif", ".jpg", ".jpeg", ".tif", ".tiff", ".png",
-             ".BMP", ".GIF", ".JPG", ".JPEG", ".TIF", ".TIFF", ".PNG"};
+	private static JFrame instance;
 
 	private enum Mestimator { LS, CAUCHY };
 	
@@ -55,65 +60,95 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 	
 	private final int lambdaRMinValue = 0;
 	private final int lambdaRMaxValue = 9;
-	private final int lambdaRDefaultValue = 6;
+	private final int lambdaRDefaultValue = 4;
 
 	private final int lambdaZMinValue = -2;
 	private final int lambdaZMaxValue = 5;
 	private final int lambdaZDefaultValue = 0;
 	
 	// cdr_cidreModel and cdr_objective shared objects
-	private double CAUCHY_W;
-	private double LAMBDA_VREG;
-	private double LAMBDA_ZERO;
-	private int ITER;
-	private Mestimator MESTIMATOR;
-	private int TERMSFLAG;
-	private double PivotShiftX;
-	private double[] PivotShiftY;
+	private double CAUCHY_W;		// width of the Cauchy function used for robust regression 
+	private double PivotShiftX;		// shift on the Q axis into the pivot space 
+	private double[] PivotShiftY;	// shift on the q axis into the pivot space 
+	private int ITER;				// iteration count for the optimization
+	private Mestimator MESTIMATOR;	// specifies "CAUCHY" or "LS" (least squares) 
+	private int TERMSFLAG;			// flag specifing which terms to include in the energy function 
+	private double LAMBDA_VREG;		// coefficient for the v regularization 
+	private double LAMBDA_ZERO;		// coefficient for the zero-light term
+	private double ZMIN;			// minimum possible value for Z
+	private double ZMAX;			// maximum possible value for Z
 	private double STACKMIN;
 
 	// GUI
-	private Label sourceImagesLabel;
-	private TextField sourceImagesTextField;
-	private Button sourceImagesButton;
 	
-	private Label destinationImagesLabel;
-	private TextField destinationImagesTextField;
-	private Button destinationImagesButton;
+	//private Font normalFont = new Font("Dialog", Font.PLAIN, 14);
+	private Font headerFont = new Font("Dialog", Font.BOLD, 16);
+	private Border greenBorder = new LineBorder(new Color(0, 192, 0), 2);
 
-	private Label buildModelLabel;
-
-	private Label lambdaRLabel;
-	private Scrollbar lambdaRScrollbar;
-	private TextField lambdaRTextField;
-	private Checkbox lambdaRCheckbox;
-	private Label lambdaRMinLabel;
-	private Label lambdaRMaxLabel;
-
-	private Label lambdaZLabel;
-	private Scrollbar lambdaZScrollbar;
-	private TextField lambdaZTextField;
-	private Checkbox lambdaZCheckbox;
-	private Label lambdaZMinLabel;
-	private Label lambdaZMaxLabel;
+	private JLabel directoryModelLabel;
 	
-	private Button buildButton;
+	private JLabel sourceImagesLabel;
+	private JTextField sourceImagesTextField;
+	private JButton sourceImagesButton;
+	
+	private JLabel sourceImageMaskLabel;
+	private JTextField sourceImageMaskTextField;
 
-	private Label loadModelLabel;
-	private Label correctionModelLabel;
-	private TextField correctionModelTextField;
-	private Button correctionModelButton;
-	private Button loadButton;
+	private JLabel destinationImagesLabel;
+	private JTextField destinationImagesTextField;
+	private JButton destinationImagesButton;
 
-	private Label correctImagesLabel;
-	private CheckboxGroup correctCheckboxGroup;	
-	private Checkbox correctCheckBoxZeroLightPreserved;
-	private Checkbox correctCheckBoxDynamicRangeCorrected;
-	private Checkbox correctCheckBoxDirect;
-	private Button correctButton;
+	private JLabel buildModelLabel;
+
+	private JLabel lambdaRLabel;
+	private JScrollBar lambdaRScrollbar;
+	private JTextField lambdaRTextField;
+	private JCheckBox lambdaRCheckbox;
+	private JLabel lambdaRMinLabel;
+	private JLabel lambdaRMaxLabel;
+
+	private JLabel lambdaZLabel;
+	private JScrollBar lambdaZScrollbar;
+	private JTextField lambdaZTextField;
+	private JCheckBox lambdaZCheckbox;
+	private JLabel lambdaZMinLabel;
+	private JLabel lambdaZMaxLabel;
+	
+	private JButton buildButton;
+
+	private JLabel loadModelLabel;
+	private JLabel correctionModelLabel;
+	private JTextField correctionModelTextField;
+	private JButton correctionModelButton;
+	private JButton loadButton;
+
+	private JLabel correctImagesLabel;
+	private ButtonGroup correctCheckboxGroup;	
+	private JCheckBox correctCheckBoxZeroLightPreserved;
+	private JCheckBox correctCheckBoxDynamicRangeCorrected;
+	private JCheckBox correctCheckBoxDirect;
+	private JButton correctButton;
+	
+	private class ImageNameFilter implements FilenameFilter {
+		private Pattern pattern;
+
+		public ImageNameFilter(String expression) {
+			String correctedExpression = ".*";
+			if (expression != null && expression != "") {
+				correctedExpression = expression.replace(".", "\\.");
+				correctedExpression = correctedExpression.replace("*", ".*");
+			}
+			pattern = Pattern.compile(correctedExpression, Pattern.CASE_INSENSITIVE);
+		}
+
+		@Override
+		public boolean accept(File dir, String name) {
+			return pattern.matcher(new File(name).getName()).matches();
+		}
+	}
 	
 	// Helper functions
-	private String getExtension(String fileName)
+	/*private String getExtension(String fileName)
 	{
 		int i = fileName.lastIndexOf('.');
 		int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
@@ -122,7 +157,7 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		    return fileName.substring(i+1);
 		}
 		return "";
-	}
+	}*/
 
 	private double mean(double[] a) {
 		int i;
@@ -158,191 +193,229 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 	private void GUICreate()
 	{
 		// Add the GUI components to the main frame 
-		setSize(500, 560);
-		setLayout(null);		
+		setSize(600, 620);
+		setLayout(null);
 		{
-			sourceImagesLabel = new Label();
-			sourceImagesLabel.setBounds(30, 50, 120, 16);
-			sourceImagesLabel.setText("Source");
+			directoryModelLabel = new JLabel();
+			directoryModelLabel.setBounds(30, 10, 200, 20);
+			directoryModelLabel.setText("Directories");
+			directoryModelLabel.setFont(headerFont);
+			add(directoryModelLabel);
+		}		
+		{
+			sourceImagesLabel = new JLabel();
+			sourceImagesLabel.setBounds(30, 40, 120, 20);
+			sourceImagesLabel.setText("Source images");
 			add(sourceImagesLabel);
 		}
 		{
-			sourceImagesTextField = new TextField("", 100);
-			sourceImagesTextField.setBounds(150, 50, 180, 16);
+			sourceImagesTextField = new JTextField("", 250);
+			sourceImagesTextField.setBounds(150, 40, 270, 20);
+			sourceImagesTextField.setToolTipText("The Source Image Directory.");
 			add(sourceImagesTextField);
 		}
 		{
-			sourceImagesButton = new Button("Source");
-			sourceImagesButton.setBounds(350, 50, 80, 20);
+			sourceImagesButton = new JButton("Browse");
+			sourceImagesButton.setBounds(430, 38, 100, 25);
 			sourceImagesButton.addActionListener(this);
+			sourceImagesButton.setToolTipText("Browse the Source Image Directory.");
 			add(sourceImagesButton);
 		}
 		{
-			destinationImagesLabel = new Label();
-			destinationImagesLabel.setBounds(30, 90, 120, 16);
-			destinationImagesLabel.setText("Destination");
+			sourceImageMaskLabel = new JLabel();
+			sourceImageMaskLabel.setBounds(30, 70, 120, 20);
+			sourceImageMaskLabel.setText("Source image mask");
+			add(sourceImageMaskLabel);						
+		}
+		{
+			sourceImageMaskTextField = new JTextField("*.tif", 200);
+			sourceImageMaskTextField.setBounds(150, 70, 180, 20);
+			sourceImageMaskTextField.setToolTipText("The Source Image Mask.");
+			add(sourceImageMaskTextField);
+		}
+		{
+			destinationImagesLabel = new JLabel();
+			destinationImagesLabel.setBounds(30, 110, 120, 20);
+			destinationImagesLabel.setText("Destination images");
 			add(destinationImagesLabel);
 		}
 		{
-			destinationImagesTextField = new TextField("", 100);
-			destinationImagesTextField.setBounds(150, 90, 180, 16);
+			destinationImagesTextField = new JTextField("", 250);
+			destinationImagesTextField.setBounds(150, 110, 270, 20);
+			destinationImagesTextField.setToolTipText("The Destination Image Directory.");
 			add(destinationImagesTextField);
 		}
 		{
-			destinationImagesButton = new Button("Destination");
-			destinationImagesButton.setBounds(350, 90, 80, 20);
+			destinationImagesButton = new JButton("Browse");
+			destinationImagesButton.setBounds(430, 108, 100, 25);
 			destinationImagesButton.addActionListener(this);
+			destinationImagesButton.setToolTipText("Browse the Destination Image Directory.");
 			add(destinationImagesButton);
 		}
 		{
-			TextField sepatator = new TextField("", 0);
-			sepatator.setBounds(10, 120, 480, 4);
+			JTextField sepatator = new JTextField("", 0);
+			sepatator.setBounds(10, 150, 570, 2);
 			sepatator.setEnabled(false);
 			add(sepatator);
 		}		
 		{
-			buildModelLabel = new Label();
-			buildModelLabel.setBounds(30, 130, 200, 16);
+			buildModelLabel = new JLabel();
+			buildModelLabel.setBounds(30, 160, 200, 20);
 			buildModelLabel.setText("Build a correction model");
+			buildModelLabel.setFont(headerFont);
 			add(buildModelLabel);
 		}		
 		{
-			lambdaRLabel = new Label("Lambda_r");
-			lambdaRLabel.setBounds(30, 160, 80, 16);
+			lambdaRLabel = new JLabel("Lambda_r");
+			lambdaRLabel.setBounds(30, 190, 80, 16);
 			add(lambdaRLabel);
 		}
 		{
-			lambdaRScrollbar = new Scrollbar(Scrollbar.HORIZONTAL, 4, 1, 0, 10);
-			lambdaRScrollbar.setBounds(120, 160, 200, 16);
+			lambdaRScrollbar = new JScrollBar(JScrollBar.HORIZONTAL, lambdaRDefaultValue, 1, lambdaRMinValue, lambdaRMaxValue+1);
+			lambdaRScrollbar.setBounds(150, 190, 200, 20);
 			lambdaRScrollbar.addAdjustmentListener(this);
 			add(lambdaRScrollbar);
 		}
 		{
-			lambdaRTextField = new TextField("", 50);
-			lambdaRTextField.setBounds(350, 160, 50, 16);
+			lambdaRTextField = new JTextField("", 50);
+			lambdaRTextField.setBounds(450, 190, 50, 16);
+			lambdaRTextField.setHorizontalAlignment(JLabel.CENTER);
 			lambdaRTextField.setEditable(false);
 			add(lambdaRTextField);
 		}
 		{
-			lambdaRCheckbox = new Checkbox("Auto");
-			lambdaRCheckbox.setBounds(420, 160, 50, 16);
-			lambdaRCheckbox.setState(true);
+			lambdaRCheckbox = new JCheckBox("Auto", true);
+			lambdaRCheckbox.setBounds(370, 190, 60, 16);
 			lambdaRCheckbox.addItemListener(this);
 			add(lambdaRCheckbox);
 		}
 		{
-			lambdaRMinLabel = new Label("" + lambdaRMinValue);
-			lambdaRMinLabel.setBounds(125, 180, 20, 16);
+			lambdaRMinLabel = new JLabel("" + lambdaRMinValue);
+			lambdaRMinLabel.setBounds(155, 210, 20, 16);
 			add(lambdaRMinLabel);
 		}
 		{
-			lambdaRMaxLabel = new Label("" + lambdaRMaxValue);
-			lambdaRMaxLabel.setBounds(305, 180, 20, 16);
+			lambdaRMaxLabel = new JLabel("" + lambdaRMaxValue);
+			lambdaRMaxLabel.setBounds(335, 210, 20, 16);
 			add(lambdaRMaxLabel);
 		}
 		{
-			lambdaZLabel = new Label("Lambda_z");
-			lambdaZLabel.setBounds(30, 200, 80, 16);
+			lambdaZLabel = new JLabel("Lambda_z");
+			lambdaZLabel.setBounds(30, 230, 80, 16);
 			add(lambdaZLabel);
 		}
 		{
-			lambdaZScrollbar = new Scrollbar(Scrollbar.HORIZONTAL, 0, 1, -2, 6);
-			lambdaZScrollbar.setBounds(120, 200, 200, 16);
+			lambdaZScrollbar = new JScrollBar(JScrollBar.HORIZONTAL, lambdaZDefaultValue, 1, lambdaZMinValue, lambdaZMaxValue + 1);
+			lambdaZScrollbar.setBounds(150, 230, 200, 20);
 			lambdaZScrollbar.addAdjustmentListener(this);
 			add(lambdaZScrollbar);
 		}
 		{
-			lambdaZTextField = new TextField("", 50);
-			lambdaZTextField.setBounds(350, 200, 50, 16);
+			lambdaZTextField = new JTextField("", 50);
+			lambdaZTextField.setBounds(450, 230, 50, 16);
+			lambdaZTextField.setHorizontalAlignment(JLabel.CENTER);
 			lambdaZTextField.setEditable(false);
 			add(lambdaZTextField);
 		}
 		{
-			lambdaZCheckbox = new Checkbox("Auto");
-			lambdaZCheckbox.setBounds(420, 200, 50, 16);
-			lambdaZCheckbox.setState(true);
+			lambdaZCheckbox = new JCheckBox("Auto", true);
+			lambdaZCheckbox.setBounds(370, 230, 60, 16);
 			lambdaZCheckbox.addItemListener(this);
 			add(lambdaZCheckbox);
 		}
 		{
-			lambdaZMinLabel = new Label("" + lambdaZMinValue);
-			lambdaZMinLabel.setBounds(125, 220, 20, 16);
+			lambdaZMinLabel = new JLabel("" + lambdaZMinValue);
+			lambdaZMinLabel.setBounds(155, 250, 20, 16);
 			add(lambdaZMinLabel);
 		}
 		{
-			lambdaZMaxLabel = new Label("" + lambdaZMaxValue);
-			lambdaZMaxLabel.setBounds(305, 220, 20, 16);
+			lambdaZMaxLabel = new JLabel("" + lambdaZMaxValue);
+			lambdaZMaxLabel.setBounds(335, 250, 20, 16);
 			add(lambdaZMaxLabel);
 		}
 		{
-			buildButton = new Button("Build");
-			buildButton.setBounds(200, 250, 100, 20);
+			buildButton = new JButton("Build");
+			buildButton.setBounds(250, 280, 100, 25);
 			buildButton.addActionListener(this);
+			buildButton.setToolTipText("Build the Correction Model.");
+			buildButton.setBorder(greenBorder);
 			add(buildButton);
 		}
 		{
-			TextField sepatator = new TextField("", 0);
-			sepatator.setBounds(10, 290, 480, 4);
+			JTextField sepatator = new JTextField("", 0);
+			sepatator.setBounds(10, 320, 570, 2);
 			sepatator.setEnabled(false);
 			add(sepatator);
 		}
 		{
-			loadModelLabel = new Label();
-			loadModelLabel.setBounds(30, 300, 200, 16);
+			loadModelLabel = new JLabel();
+			loadModelLabel.setBounds(30, 330, 200, 20);
 			loadModelLabel.setText("Load a correction model");
+			loadModelLabel.setFont(headerFont);
 			add(loadModelLabel);
 		}
 		{
-			correctionModelLabel = new Label();
-			correctionModelLabel.setBounds(30, 340, 120, 16);
+			correctionModelLabel = new JLabel();
+			correctionModelLabel.setBounds(30, 370, 120, 16);
 			correctionModelLabel.setText("Correction model");
 			add(correctionModelLabel);
 		}
 		{
-			correctionModelTextField = new TextField("", 100);
-			correctionModelTextField.setBounds(150, 340, 180, 16);
+			correctionModelTextField = new JTextField("", 100);
+			correctionModelTextField.setBounds(150, 370, 270, 20);
+			correctionModelTextField.setToolTipText("The Correction Model Directory.");
 			add(correctionModelTextField);
 		}
 		{
-			correctionModelButton = new Button("Model");
-			correctionModelButton.setBounds(350, 340, 80, 20);
+			correctionModelButton = new JButton("Browse");
+			correctionModelButton.setBounds(430, 368, 100, 25);
 			correctionModelButton.addActionListener(this);
+			correctionModelButton.setToolTipText("Browse the Correction Model Directory.");
 			add(correctionModelButton);
 		}
 		{
-			loadButton = new Button("Load Model");
-			loadButton.setBounds(200, 380, 100, 20);
+			loadButton = new JButton("Load Model");
+			loadButton.setBounds(250, 410, 100, 25);
 			loadButton.addActionListener(this);
+			loadButton.setToolTipText("Load the Correction Model from Directory.");
 			add(loadButton);
 		}
 		{
-			TextField sepatator = new TextField("", 0);
-			sepatator.setBounds(10, 420, 480, 4);
+			JTextField sepatator = new JTextField("", 0);
+			sepatator.setBounds(10, 450, 570, 2);
 			sepatator.setEnabled(false);
 			add(sepatator);
 		}
 		{
-			correctImagesLabel = new Label();
-			correctImagesLabel.setBounds(30, 430, 200, 16);
+			correctImagesLabel = new JLabel();
+			correctImagesLabel.setBounds(30, 460, 200, 20);
 			correctImagesLabel.setText("Correct images");
+			correctImagesLabel.setFont(headerFont);
 			add(correctImagesLabel);
 		}
 		{
-			correctCheckboxGroup = new CheckboxGroup();
-			correctCheckBoxZeroLightPreserved = new Checkbox("Zero-light preserved", correctCheckboxGroup, true);
-			correctCheckBoxZeroLightPreserved.setBounds(50, 460, 200, 16);
+			correctCheckboxGroup = new ButtonGroup();
+			correctCheckBoxZeroLightPreserved = new JCheckBox("Zero-light preserved", true);
+			correctCheckBoxZeroLightPreserved.setBounds(50, 490, 200, 16);
+			correctCheckBoxDynamicRangeCorrected = new JCheckBox("Dynamic range corrected", false);
+			correctCheckBoxDynamicRangeCorrected.setBounds(50, 515, 200, 16);
+			correctCheckBoxDirect = new JCheckBox("Direct", false);
+			correctCheckBoxDirect.setBounds(50, 540, 200, 16);
+
+			correctCheckboxGroup.add(correctCheckBoxZeroLightPreserved);
+			correctCheckboxGroup.add(correctCheckBoxDynamicRangeCorrected);
+			correctCheckboxGroup.add(correctCheckBoxDirect);
+
 			add(correctCheckBoxZeroLightPreserved);
-			correctCheckBoxDynamicRangeCorrected = new Checkbox("Dynamic range corrected", correctCheckboxGroup, false);
-			correctCheckBoxDynamicRangeCorrected.setBounds(50, 485, 200, 16);
 			add(correctCheckBoxDynamicRangeCorrected);
-			correctCheckBoxDirect = new Checkbox("Direct", correctCheckboxGroup, false);
-			correctCheckBoxDirect.setBounds(50, 510, 200, 16);
 			add(correctCheckBoxDirect);
 		}
 		{
-			correctButton = new Button("Correct");
-			correctButton.setBounds(300, 470, 100, 20);
+			correctButton = new JButton("Correct");
+			correctButton.setBounds(430, 498, 100, 25);
 			correctButton.addActionListener(this);
+			correctButton.setToolTipText("Correct");
+			correctButton.setBorder(greenBorder);
 			add(correctButton);
 		}
 
@@ -413,18 +486,19 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		lambdaRTextField.setText("" + lambdaRScrollbar.getValue()); 
 		lambdaZTextField.setText("" + lambdaZScrollbar.getValue());
 
-		lambdaRTextField.setEnabled(!lambdaRCheckbox.getState());
-		lambdaZTextField.setEnabled(!lambdaZCheckbox.getState());
-		lambdaRTextField.setVisible(!lambdaRCheckbox.getState());
-		lambdaZTextField.setVisible(!lambdaZCheckbox.getState());
+		lambdaRTextField.setEnabled(!lambdaRCheckbox.isSelected());
+		lambdaZTextField.setEnabled(!lambdaZCheckbox.isSelected());
+		lambdaRTextField.setVisible(!lambdaRCheckbox.isSelected());
+		lambdaZTextField.setVisible(!lambdaZCheckbox.isSelected());
 		
-		lambdaRScrollbar.setEnabled(!lambdaRCheckbox.getState());
-		lambdaZScrollbar.setEnabled(!lambdaZCheckbox.getState());
+		lambdaRScrollbar.setEnabled(!lambdaRCheckbox.isSelected());
+		lambdaZScrollbar.setEnabled(!lambdaZCheckbox.isSelected());
 	}
 	
 	private void GUIEnableComponents() {
 		sourceImagesButton.setEnabled(true);
 		sourceImagesTextField.setEnabled(true);
+		sourceImageMaskTextField.setEnabled(true);
 		destinationImagesButton.setEnabled(true);
 		destinationImagesTextField.setEnabled(true);
 		buildButton.setEnabled(true);
@@ -446,6 +520,7 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 	private void GUIDisableComponents() {
 		sourceImagesButton.setEnabled(false);
 		sourceImagesTextField.setEnabled(false);
+		sourceImageMaskTextField.setEnabled(false);
 		destinationImagesButton.setEnabled(false);
 		destinationImagesTextField.setEnabled(false);
 		buildButton.setEnabled(false);
@@ -474,19 +549,22 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 			final CidreOptions options = new CidreOptions();
 			
 			options.folderSource = sourceImagesTextField.getText() + File.separator;
+			options.fileFilterSource = sourceImageMaskTextField.getText();
 			options.folderDestination = destinationImagesTextField.getText() + File.separator;
-			if (!lambdaRCheckbox.getState()) {
+			if (!lambdaRCheckbox.isSelected()) {
 				options.lambdaVreg = (double) lambdaRScrollbar.getValue();
 			}
-			if (!lambdaZCheckbox.getState()) {
+			if (!lambdaZCheckbox.isSelected()) {
 				options.lambdaZero = (double) lambdaZScrollbar.getValue();
 			}
 	
 			new Thread()
 			{
 			    public void run() {
-					if (!loadImages(options.folderSource, options))
+					if (!loadImages(options.folderSource, options.fileFilterSource, options)) {
+						GUIEnableComponents();
 						return;
+					}
 		
 					model = cidreModel(options);
 	
@@ -584,9 +662,10 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 
 //endregion	
 
-	private boolean loadImages(String source, CidreOptions options)
+	private boolean loadImages(String source, String fileMask, CidreOptions options)
 	{
 		double maxI = 0;
+		S.clear();
 		
 		if (source != null && source != "")
 		{
@@ -600,23 +679,13 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		    options.folderSource = pth;    
 	    
 		   	// generate a list of source filenames searching for all valid filetypes
-	    	String fileName;
 	    	File folder = new File(pth);
-	    	File[] listOfFiles = folder.listFiles(); 
-	    	  
-	    	for (int i = 0; i < listOfFiles.length; i++) 
-	    	{
-	    		if (listOfFiles[i].isFile()) 
-	    		{
-	    			fileName = listOfFiles[i].getName();
-	    			
-	    			for (String validFileType : validFileTypes) {
-	    				if (fileName.endsWith(validFileType))
-	    				{
-	    					options.fileNames.add(listOfFiles[i].getName());
-	    				}
-	    			}
-	    		}
+	    	File[] listOfFiles = folder.listFiles(new ImageNameFilter(fileMask)); 
+
+	    	if (listOfFiles != null) {
+		    	for (int i = 0; i < listOfFiles.length; i++) {
+					options.fileNames.add(listOfFiles[i].getName());	    		
+		    	}
 	    	}
 
 	    	// store the number of source images into the options structure
@@ -1034,15 +1103,15 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		final int xy_2_12 = 4096;
 		final int xy_2_16 = 65536;
 
-		if (options.bitDepth != null)
+		/*if (options.bitDepth != null)
 		{
 			    if (options.bitDepth !=	xy_2_8 || options.bitDepth != xy_2_12 || options.bitDepth != xy_2_16)
 			        IJ.error("CIDRE:loadImages", "Provide bit depth as max integer value, eg 2^12");
 			    else
 			        IJ.log(String.format(" log2 %d-bit depth", options.bitDepth));
 		} 
-		else
-		{
+		else*/
+		//{
 			    if (maxI > xy_2_12)
 			        options.bitDepth = xy_2_16;
 			    else if (maxI > xy_2_8)
@@ -1050,7 +1119,7 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 			    else
 			        options.bitDepth = xy_2_8;
 			    IJ.log(String.format(" %d-bit depth images (estimated from max intensity=%1.0f)", Math.round(Math.log(options.bitDepth)/Math.log(2)), maxI));
-		}
+		//}
 	}
 	
 	private double getEntropy(CidreOptions options)
@@ -1128,7 +1197,11 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		// (N > N_required). It informs us how strong the scale space resampling
 		// should be. alpha=1 means strong resampling, alpha=0 skips resampling
 		double alpha;
-		if (N < N_required) {
+
+	    if (N < N_required) {
+		    String warnmsg = String.format(" Warning: less than recommended number\n of images provided (%.0f < %.0f) for the\n observed image entropy=%1.2f.\n\n Using scale-space resampling to compensate.", N, (double)Math.round(N_required), entropy);
+		    JOptionPane.showMessageDialog(new JFrame(), warnmsg, "Warning", JOptionPane.ERROR_MESSAGE);
+		    IJ.log(String.format("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n%s\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n", warnmsg));
 			alpha = l0 + ((l1-l0)/(N_required)) * N;
 		} else {
 			alpha = l1;
@@ -1290,6 +1363,25 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		resizeStack(options);
 	    long t2 = System.currentTimeMillis();
 	    IJ.log(String.format("finished in %1.2fs.", (t2 - t1)/1000.0));
+	}
+	
+	private ZLimitsResult getZLimits(CidreOptions cidreOptions)
+	{
+		ZLimitsResult zLimitsResult = new ZLimitsResult();
+		
+		if (cidreOptions.zLimits[0] != null) {
+			zLimitsResult.zmin = cidreOptions.zLimits[0];
+			zLimitsResult.zmax = cidreOptions.zLimits[1];
+			zLimitsResult.zx0 = (cidreOptions.zLimits[0] + cidreOptions.zLimits[1]) / 2.0;
+			zLimitsResult.zy0 = zLimitsResult.zx0;
+		} else {
+			zLimitsResult.zmin = 0;
+			zLimitsResult.zmax = STACKMIN;
+			zLimitsResult.zx0 = 0.85 * STACKMIN;
+			zLimitsResult.zy0 = zLimitsResult.zx0;
+		}
+		
+		return zLimitsResult;		
 	}
 	
 	private double getLambdaVfromN(int N)
@@ -1716,9 +1808,9 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		// We compute the energy of the barrier term given v,b,zx,zy. We also
 		// compute its gradient wrt the random variables.
 
-		double Q_UPPER_LIMIT = STACKMIN;   // upper limit - transition from zero energy to quadratic increase 
-		double Q_LOWER_LIMIT = 0.0;        // lower limit - transition from quadratic to zero energy
-		double Q_RATE = 2.0;               // rate of increase in energy 
+		double Q_UPPER_LIMIT = ZMAX;	// upper limit - transition from zero energy to quadratic increase 
+		double Q_LOWER_LIMIT = ZMIN;	// lower limit - transition from quadratic to zero energy
+		double Q_RATE = 0.001;			// rate of increase in energy 
 
 		// barrier term gradients and energy components
 		double[] barrierResult = theBarrierFunction(zx, Q_LOWER_LIMIT, Q_UPPER_LIMIT, Q_RATE);
@@ -2551,13 +2643,12 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		if (options.maxLbgfsIterations == null) {
 			options.maxLbgfsIterations = 500;
 		}
+		if (options.lambdaVreg == null) {
+			options.lambdaVreg = getLambdaVfromN(options.numImagesProvided);
+		}
 		
 		//get dimensions of the provided data stack, S
 		int Z = S.size();
-
-		// set options.lambda_vreg according to the number of provided images, if
-		// not specified by the user
-		options.lambdaVreg = getLambdaVfromN(options.numImagesProvided);
 
 		STACKMIN = Double.MAX_VALUE;
 		for (int z = 0; z < S.size(); z++)
@@ -2579,8 +2670,12 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 					b0[c * S_R + r] = 0.0;
 				}
 		}
-		double zx0 = 0.85 * STACKMIN;
-		double zy0 = 0.85 * STACKMIN;
+
+		ZLimitsResult zLimitsResult = getZLimits(options);
+		ZMIN = zLimitsResult.zmin;
+		ZMAX = zLimitsResult.zmax;
+		double zx0 = zLimitsResult.zx0;
+		double zy0 = zLimitsResult.zy0;
 
 		// get an estimate of Q, the underlying intensity distribution
 		Q = estimateQ(options.qPercent);
@@ -2617,7 +2712,7 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 			for (int r = 0; r < S_R; r++)
 				b0[c * S_R + r] = b0[c * S_R + r] + PivotShiftX * v0[c * S_R + r] - PivotShiftY[c * S_R + r];
 
-		IJ.log(String.format(" Optimizing using the following parameters:\n lambda_v  = %1.2f\n lambda_z  = %1.2f\n q_percent = %1.2f\n (this may take a few minutes)\n", options.lambdaVreg, options.lambdaZero, options.qPercent));
+		IJ.log(String.format(" Optimizing using the following parameters:\n lambda_v  = %1.2f\n lambda_z  = %1.2f\n q_percent = %1.2f\n z_limits = [%.0f %.0f]\n(this may take a few minutes)\n", options.lambdaVreg, options.lambdaZero, options.qPercent, ZMIN, ZMAX));
 
 		long t1 = System.currentTimeMillis();
 
@@ -2804,14 +2899,18 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
     	float[][] floatArray;
     	CidreOptions.CorrectionMode correctionMode = null;
 
-    	Checkbox selectedCorrectCheckbox = correctCheckboxGroup.getSelectedCheckbox();
-    	
-    	if (selectedCorrectCheckbox == correctCheckBoxDynamicRangeCorrected)
-			correctionMode = CidreOptions.CorrectionMode.dynamic_range_corrected;
-    	else if (selectedCorrectCheckbox == correctCheckBoxDirect)
-    		correctionMode = CidreOptions.CorrectionMode.direct;
-    	else 
-    		correctionMode = CidreOptions.CorrectionMode.zero_light_perserved;
+    	 for (Enumeration<AbstractButton> jCheckBoxes = correctCheckboxGroup.getElements(); jCheckBoxes.hasMoreElements(); ) {
+         	JCheckBox jCheckBox = (JCheckBox) jCheckBoxes.nextElement();
+
+             if (jCheckBox.isSelected()) {
+             	if (jCheckBox == correctCheckBoxDynamicRangeCorrected)
+             		correctionMode = CidreOptions.CorrectionMode.dynamic_range_corrected;
+             	else if (jCheckBox == correctCheckBoxDirect)
+             		correctionMode = CidreOptions.CorrectionMode.direct;
+             	else 
+             		correctionMode = CidreOptions.CorrectionMode.zero_light_perserved;
+             }
+         }
 		
 		String folderSource = sourceImagesTextField.getText() + File.separator; 
 		String folderDestination = destinationImagesTextField.getText() + File.separator;
@@ -2834,25 +2933,15 @@ public class Cidre_Plugin extends Frame implements PlugIn, ActionListener, Adjus
 		IJ.log(String.format("  Writing %s corrected images to %s" , str.toUpperCase(), folderDestination));
 
 	    long t1 = System.currentTimeMillis();
-
 	    
 	   	// generate a list of source filenames searching for all valid filetypes
-    	String fileName;
     	File folder = new File(sourceImagesTextField.getText());
-    	File[] listOfFiles = folder.listFiles(); 
+    	File[] listOfFiles = folder.listFiles(new ImageNameFilter(sourceImageMaskTextField.getText())); 
     	  
-    	for (int i = 0; i < listOfFiles.length; i++) 
-    	{
-    		if (listOfFiles[i].isFile()) 
-    		{
-    			fileName = listOfFiles[i].getName();
-    			
-    			for (String validFileType : validFileTypes) {
-    				if (fileName.endsWith(validFileType)) {
-    					fileNames.add(listOfFiles[i].getName());
-    				}
-    			}
-    		}
+    	if (listOfFiles != null) {
+	    	for (int i = 0; i < listOfFiles.length; i++) {
+				fileNames.add(listOfFiles[i].getName());
+	    	}
     	}
 
     	if (fileNames.size() > 0) {

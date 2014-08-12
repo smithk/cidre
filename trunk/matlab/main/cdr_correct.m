@@ -12,7 +12,7 @@ function cdr_correct(model,options)
 %                 required by CIDRE. The correction mode option has 3
 %                 possible values:
 %                 0 = 'zero-light perserved' (default), 
-%                 1 = 'dynamic range corrected', or 
+%                 1 = 'intensity range preserved', or 
 %                 2 = 'direct'
 %
 % Output:         Stores corrected images to the destination folder
@@ -37,7 +37,7 @@ if ~strcmpi(options.folder_destination(end), '/') && ~strcmpi(options.folder_des
 end
 
 if isempty(options.correction_mode)
-    options.correction_mode = 2;
+    options.correction_mode = 0;
 end
 
 
@@ -55,7 +55,7 @@ switch options.correction_mode
     case 0
         str = 'zero-light perserved';
     case 1
-        str = 'dynamic range corrected';
+        str = 'intensity range corrected';
     case 2
         str = 'direct';
 end
@@ -69,10 +69,10 @@ for z = 1:options.num_images_provided
     
     % check which type of correction we want to do
     switch options.correction_mode
-        case 0  %'intensity range preserving'
+        case 0  %'zero-light preserving'
             Icorrected = ((I - model.z)./model.v) * mean(model.v(:))  + mean(model.z(:));
                     
-        case 1 % 'zero-light_preserving'
+        case 1 % 'intensity range preserving'
             Icorrected = ((I - model.z)./model.v) * mean(model.v(:));
         
         case 2 %'direct'    
