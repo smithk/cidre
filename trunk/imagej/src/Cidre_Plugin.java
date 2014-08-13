@@ -58,13 +58,15 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 
 	private CidreModel model = null;
 	
+	private final int lambdaRScaleFactor = 10;
 	private final int lambdaRMinValue = 0;
 	private final int lambdaRMaxValue = 9;
-	private final int lambdaRDefaultValue = 4;
+	private final double lambdaRDefaultValue = 6;
 
+	private final int lambdaZScaleFactor = 10;
 	private final int lambdaZMinValue = -2;
 	private final int lambdaZMaxValue = 5;
-	private final int lambdaZDefaultValue = 0;
+	private final double lambdaZDefaultValue = 0.5;
 	
 	// cdr_cidreModel and cdr_objective shared objects
 	private double CAUCHY_W;		// width of the Cauchy function used for robust regression 
@@ -113,6 +115,12 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 	private JCheckBox lambdaZCheckbox;
 	private JLabel lambdaZMinLabel;
 	private JLabel lambdaZMaxLabel;
+	
+	private JLabel darkFrameLabel;
+	private JLabel darkFrameZMinLabel;
+	private JTextField darkFrameZMinTextField;
+	private JLabel darkFrameZMaxLabel;
+	private JTextField darkFrameZMaxTextField;	
 	
 	private JButton buildButton;
 
@@ -193,202 +201,229 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 	private void GUICreate()
 	{
 		// Add the GUI components to the main frame 
-		setSize(600, 620);
+		setSize(620, 660);
 		setLayout(null);
 		{
 			directoryModelLabel = new JLabel();
-			directoryModelLabel.setBounds(30, 10, 200, 20);
+			directoryModelLabel.setBounds(30, 10, 300, 20);
 			directoryModelLabel.setText("Directories");
 			directoryModelLabel.setFont(headerFont);
 			add(directoryModelLabel);
 		}		
 		{
 			sourceImagesLabel = new JLabel();
-			sourceImagesLabel.setBounds(30, 40, 120, 20);
+			sourceImagesLabel.setBounds(30, 40, 150, 20);
 			sourceImagesLabel.setText("Source images");
 			add(sourceImagesLabel);
 		}
 		{
 			sourceImagesTextField = new JTextField("", 250);
-			sourceImagesTextField.setBounds(150, 40, 270, 20);
+			sourceImagesTextField.setBounds(180, 40, 270, 20);
 			sourceImagesTextField.setToolTipText("The Source Image Directory.");
 			add(sourceImagesTextField);
 		}
 		{
 			sourceImagesButton = new JButton("Browse");
-			sourceImagesButton.setBounds(430, 38, 100, 25);
+			sourceImagesButton.setBounds(460, 38, 120, 25);
 			sourceImagesButton.addActionListener(this);
 			sourceImagesButton.setToolTipText("Browse the Source Image Directory.");
 			add(sourceImagesButton);
 		}
 		{
 			sourceImageMaskLabel = new JLabel();
-			sourceImageMaskLabel.setBounds(30, 70, 120, 20);
+			sourceImageMaskLabel.setBounds(30, 70, 150, 20);
 			sourceImageMaskLabel.setText("Source image mask");
 			add(sourceImageMaskLabel);						
 		}
 		{
 			sourceImageMaskTextField = new JTextField("*.tif", 200);
-			sourceImageMaskTextField.setBounds(150, 70, 180, 20);
+			sourceImageMaskTextField.setBounds(180, 70, 180, 20);
 			sourceImageMaskTextField.setToolTipText("The Source Image Mask.");
 			add(sourceImageMaskTextField);
 		}
 		{
 			destinationImagesLabel = new JLabel();
-			destinationImagesLabel.setBounds(30, 110, 120, 20);
+			destinationImagesLabel.setBounds(30, 110, 150, 20);
 			destinationImagesLabel.setText("Destination images");
 			add(destinationImagesLabel);
 		}
 		{
 			destinationImagesTextField = new JTextField("", 250);
-			destinationImagesTextField.setBounds(150, 110, 270, 20);
+			destinationImagesTextField.setBounds(180, 110, 270, 20);
 			destinationImagesTextField.setToolTipText("The Destination Image Directory.");
 			add(destinationImagesTextField);
 		}
 		{
 			destinationImagesButton = new JButton("Browse");
-			destinationImagesButton.setBounds(430, 108, 100, 25);
+			destinationImagesButton.setBounds(460, 108, 120, 25);
 			destinationImagesButton.addActionListener(this);
 			destinationImagesButton.setToolTipText("Browse the Destination Image Directory.");
 			add(destinationImagesButton);
 		}
 		{
-			JTextField sepatator = new JTextField("", 0);
-			sepatator.setBounds(10, 150, 570, 2);
-			sepatator.setEnabled(false);
-			add(sepatator);
+			JTextField separator = new JTextField("", 0);
+			separator.setBounds(10, 150, 590, 2);
+			separator.setEnabled(false);
+			add(separator);
 		}		
 		{
 			buildModelLabel = new JLabel();
-			buildModelLabel.setBounds(30, 160, 200, 20);
+			buildModelLabel.setBounds(30, 160, 300, 20);
 			buildModelLabel.setText("Build a correction model");
 			buildModelLabel.setFont(headerFont);
 			add(buildModelLabel);
 		}		
 		{
-			lambdaRLabel = new JLabel("Lambda_r");
-			lambdaRLabel.setBounds(30, 190, 80, 16);
+			lambdaRLabel = new JLabel("Gain regularization (\u03BBv)");
+			lambdaRLabel.setBounds(30, 190, 230, 20);
 			add(lambdaRLabel);
 		}
 		{
-			lambdaRScrollbar = new JScrollBar(JScrollBar.HORIZONTAL, lambdaRDefaultValue, 1, lambdaRMinValue, lambdaRMaxValue+1);
-			lambdaRScrollbar.setBounds(150, 190, 200, 20);
+			lambdaRScrollbar = new JScrollBar(JScrollBar.HORIZONTAL, (int)(lambdaRDefaultValue * lambdaRScaleFactor), 1, lambdaRMinValue * lambdaRScaleFactor, lambdaRMaxValue * lambdaRScaleFactor + 1);
+			lambdaRScrollbar.setBounds(260, 190, 200, 20);
 			lambdaRScrollbar.addAdjustmentListener(this);
 			add(lambdaRScrollbar);
 		}
 		{
 			lambdaRTextField = new JTextField("", 50);
-			lambdaRTextField.setBounds(450, 190, 50, 16);
+			lambdaRTextField.setBounds(530, 190, 50, 20);
 			lambdaRTextField.setHorizontalAlignment(JLabel.CENTER);
 			lambdaRTextField.setEditable(false);
 			add(lambdaRTextField);
 		}
 		{
 			lambdaRCheckbox = new JCheckBox("Auto", true);
-			lambdaRCheckbox.setBounds(370, 190, 60, 16);
+			lambdaRCheckbox.setBounds(470, 190, 60, 16);
 			lambdaRCheckbox.addItemListener(this);
 			add(lambdaRCheckbox);
 		}
 		{
 			lambdaRMinLabel = new JLabel("" + lambdaRMinValue);
-			lambdaRMinLabel.setBounds(155, 210, 20, 16);
+			lambdaRMinLabel.setBounds(265, 210, 20, 16);
 			add(lambdaRMinLabel);
 		}
 		{
 			lambdaRMaxLabel = new JLabel("" + lambdaRMaxValue);
-			lambdaRMaxLabel.setBounds(335, 210, 20, 16);
+			lambdaRMaxLabel.setBounds(445, 210, 20, 16);
 			add(lambdaRMaxLabel);
 		}
 		{
-			lambdaZLabel = new JLabel("Lambda_z");
-			lambdaZLabel.setBounds(30, 230, 80, 16);
+			lambdaZLabel = new JLabel("Zero-light regularization (\u03BBz)");
+			lambdaZLabel.setBounds(30, 230, 230, 25);
 			add(lambdaZLabel);
 		}
 		{
-			lambdaZScrollbar = new JScrollBar(JScrollBar.HORIZONTAL, lambdaZDefaultValue, 1, lambdaZMinValue, lambdaZMaxValue + 1);
-			lambdaZScrollbar.setBounds(150, 230, 200, 20);
+			lambdaZScrollbar = new JScrollBar(JScrollBar.HORIZONTAL, (int)(lambdaZDefaultValue * lambdaZScaleFactor), 1, lambdaZMinValue * lambdaZScaleFactor, lambdaZMaxValue * lambdaZScaleFactor + 1);
+			lambdaZScrollbar.setBounds(260, 230, 200, 20);
 			lambdaZScrollbar.addAdjustmentListener(this);
 			add(lambdaZScrollbar);
 		}
 		{
 			lambdaZTextField = new JTextField("", 50);
-			lambdaZTextField.setBounds(450, 230, 50, 16);
+			lambdaZTextField.setBounds(530, 230, 50, 20);
 			lambdaZTextField.setHorizontalAlignment(JLabel.CENTER);
 			lambdaZTextField.setEditable(false);
 			add(lambdaZTextField);
 		}
 		{
 			lambdaZCheckbox = new JCheckBox("Auto", true);
-			lambdaZCheckbox.setBounds(370, 230, 60, 16);
+			lambdaZCheckbox.setBounds(470, 230, 60, 16);
 			lambdaZCheckbox.addItemListener(this);
 			add(lambdaZCheckbox);
 		}
 		{
 			lambdaZMinLabel = new JLabel("" + lambdaZMinValue);
-			lambdaZMinLabel.setBounds(155, 250, 20, 16);
+			lambdaZMinLabel.setBounds(265, 250, 20, 16);
 			add(lambdaZMinLabel);
 		}
 		{
 			lambdaZMaxLabel = new JLabel("" + lambdaZMaxValue);
-			lambdaZMaxLabel.setBounds(335, 250, 20, 16);
+			lambdaZMaxLabel.setBounds(445, 250, 20, 16);
 			add(lambdaZMaxLabel);
 		}
 		{
+			darkFrameLabel = new JLabel("Dark frame (z) limits");
+			darkFrameLabel.setBounds(30, 280, 230, 25);
+			add(darkFrameLabel);
+		}
+		{
+			darkFrameZMinLabel = new JLabel("Min:");
+			darkFrameZMinLabel.setBounds(260, 280, 30, 20);
+			add(darkFrameZMinLabel);
+		}
+		{
+			darkFrameZMinTextField = new JTextField(3);
+			darkFrameZMinTextField.setBounds(300, 280, 50, 20);
+			darkFrameZMinTextField.setToolTipText("The Dark frame MIN value.");
+			add(darkFrameZMinTextField);		
+		}
+		{
+			darkFrameZMaxLabel = new JLabel("Max:");
+			darkFrameZMaxLabel.setBounds(360, 280, 30, 20);
+			add(darkFrameZMaxLabel);
+		}
+		{
+			darkFrameZMaxTextField = new JTextField(3);
+			darkFrameZMaxTextField.setBounds(400, 280, 50, 20);
+			darkFrameZMaxTextField.setToolTipText("The Dark frame MAX value.");
+			add(darkFrameZMaxTextField);		
+		}
+		{
 			buildButton = new JButton("Build");
-			buildButton.setBounds(250, 280, 100, 25);
+			buildButton.setBounds(250, 320, 120, 25);
 			buildButton.addActionListener(this);
 			buildButton.setToolTipText("Build the Correction Model.");
 			buildButton.setBorder(greenBorder);
 			add(buildButton);
 		}
 		{
-			JTextField sepatator = new JTextField("", 0);
-			sepatator.setBounds(10, 320, 570, 2);
-			sepatator.setEnabled(false);
-			add(sepatator);
+			JTextField separator = new JTextField("", 0);
+			separator.setBounds(10, 360, 590, 2);
+			separator.setEnabled(false);
+			add(separator);
 		}
 		{
 			loadModelLabel = new JLabel();
-			loadModelLabel.setBounds(30, 330, 200, 20);
+			loadModelLabel.setBounds(30, 370, 300, 20);
 			loadModelLabel.setText("Load a correction model");
 			loadModelLabel.setFont(headerFont);
 			add(loadModelLabel);
 		}
 		{
 			correctionModelLabel = new JLabel();
-			correctionModelLabel.setBounds(30, 370, 120, 16);
+			correctionModelLabel.setBounds(30, 410, 150, 16);
 			correctionModelLabel.setText("Correction model");
 			add(correctionModelLabel);
 		}
 		{
 			correctionModelTextField = new JTextField("", 100);
-			correctionModelTextField.setBounds(150, 370, 270, 20);
+			correctionModelTextField.setBounds(180, 410, 270, 20);
 			correctionModelTextField.setToolTipText("The Correction Model Directory.");
 			add(correctionModelTextField);
 		}
 		{
 			correctionModelButton = new JButton("Browse");
-			correctionModelButton.setBounds(430, 368, 100, 25);
+			correctionModelButton.setBounds(460, 408, 120, 25);
 			correctionModelButton.addActionListener(this);
 			correctionModelButton.setToolTipText("Browse the Correction Model Directory.");
 			add(correctionModelButton);
 		}
 		{
 			loadButton = new JButton("Load Model");
-			loadButton.setBounds(250, 410, 100, 25);
+			loadButton.setBounds(250, 450, 120, 25);
 			loadButton.addActionListener(this);
 			loadButton.setToolTipText("Load the Correction Model from Directory.");
 			add(loadButton);
 		}
 		{
-			JTextField sepatator = new JTextField("", 0);
-			sepatator.setBounds(10, 450, 570, 2);
-			sepatator.setEnabled(false);
-			add(sepatator);
+			JTextField separator = new JTextField("", 0);
+			separator.setBounds(10, 490, 590, 2);
+			separator.setEnabled(false);
+			add(separator);
 		}
 		{
 			correctImagesLabel = new JLabel();
-			correctImagesLabel.setBounds(30, 460, 200, 20);
+			correctImagesLabel.setBounds(30, 500, 300, 20);
 			correctImagesLabel.setText("Correct images");
 			correctImagesLabel.setFont(headerFont);
 			add(correctImagesLabel);
@@ -396,11 +431,11 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 		{
 			correctCheckboxGroup = new ButtonGroup();
 			correctCheckBoxZeroLightPreserved = new JCheckBox("Zero-light preserved", true);
-			correctCheckBoxZeroLightPreserved.setBounds(50, 490, 200, 16);
+			correctCheckBoxZeroLightPreserved.setBounds(50, 530, 250, 16);
 			correctCheckBoxDynamicRangeCorrected = new JCheckBox("Dynamic range corrected", false);
-			correctCheckBoxDynamicRangeCorrected.setBounds(50, 515, 200, 16);
+			correctCheckBoxDynamicRangeCorrected.setBounds(50, 555, 250, 16);
 			correctCheckBoxDirect = new JCheckBox("Direct", false);
-			correctCheckBoxDirect.setBounds(50, 540, 200, 16);
+			correctCheckBoxDirect.setBounds(50, 580, 250, 16);
 
 			correctCheckboxGroup.add(correctCheckBoxZeroLightPreserved);
 			correctCheckboxGroup.add(correctCheckBoxDynamicRangeCorrected);
@@ -412,7 +447,7 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 		}
 		{
 			correctButton = new JButton("Correct");
-			correctButton.setBounds(430, 498, 100, 25);
+			correctButton.setBounds(460, 538, 120, 25);
 			correctButton.addActionListener(this);
 			correctButton.setToolTipText("Correct");
 			correctButton.setBorder(greenBorder);
@@ -483,8 +518,8 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 	}
 
 	private void GUIDoUpdate() {
-		lambdaRTextField.setText("" + lambdaRScrollbar.getValue()); 
-		lambdaZTextField.setText("" + lambdaZScrollbar.getValue());
+		lambdaRTextField.setText("" + ((double)lambdaRScrollbar.getValue() / lambdaRScaleFactor)); 
+		lambdaZTextField.setText("" + ((double)lambdaZScrollbar.getValue() / lambdaZScaleFactor));
 
 		lambdaRTextField.setEnabled(!lambdaRCheckbox.isSelected());
 		lambdaZTextField.setEnabled(!lambdaZCheckbox.isSelected());
@@ -501,11 +536,13 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 		sourceImageMaskTextField.setEnabled(true);
 		destinationImagesButton.setEnabled(true);
 		destinationImagesTextField.setEnabled(true);
-		buildButton.setEnabled(true);
 		lambdaRCheckbox.setEnabled(true);
 		lambdaRScrollbar.setEnabled(true);
 		lambdaZCheckbox.setEnabled(true);
 		lambdaZScrollbar.setEnabled(true);
+		darkFrameZMinTextField.setEnabled(true);
+		darkFrameZMaxTextField.setEnabled(true);
+		buildButton.setEnabled(true);
 		correctionModelTextField.setEnabled(true);
 		correctionModelButton.setEnabled(true);
 		loadButton.setEnabled(true);
@@ -523,11 +560,13 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 		sourceImageMaskTextField.setEnabled(false);
 		destinationImagesButton.setEnabled(false);
 		destinationImagesTextField.setEnabled(false);
-		buildButton.setEnabled(false);
 		lambdaRCheckbox.setEnabled(false);
 		lambdaRScrollbar.setEnabled(false);
 		lambdaZCheckbox.setEnabled(false);
 		lambdaZScrollbar.setEnabled(false);
+		darkFrameZMinTextField.setEnabled(false);
+		darkFrameZMaxTextField.setEnabled(false);
+		buildButton.setEnabled(false);
 		correctionModelTextField.setEnabled(false);
 		correctionModelButton.setEnabled(false);
 		loadButton.setEnabled(false);
@@ -540,42 +579,56 @@ public class Cidre_Plugin extends JFrame implements PlugIn, ActionListener, Adju
 	}
 
 	private void GUIBuildModel() {
-		if (!sourceImagesTextField.getText().isEmpty() 
-				&& !destinationImagesTextField.getText().isEmpty() 
-				&& sourceImagesTextField.getText() != destinationImagesTextField.getText())
-		{
-			GUIDisableComponents();
-
-			final CidreOptions options = new CidreOptions();
-			
-			options.folderSource = sourceImagesTextField.getText() + File.separator;
-			options.fileFilterSource = sourceImageMaskTextField.getText();
-			options.folderDestination = destinationImagesTextField.getText() + File.separator;
-			if (!lambdaRCheckbox.isSelected()) {
-				options.lambdaVreg = (double) lambdaRScrollbar.getValue();
-			}
-			if (!lambdaZCheckbox.isSelected()) {
-				options.lambdaZero = (double) lambdaZScrollbar.getValue();
-			}
-	
-			new Thread()
-			{
-			    public void run() {
-					if (!loadImages(options.folderSource, options.fileFilterSource, options)) {
-						GUIEnableComponents();
-						return;
-					}
-		
-					model = cidreModel(options);
-	
-					GUIEnableComponents();
-					
-					IJ.log("Please press the 'Correct' button to correct the images with the built model");					
-			    }
-			}.start();
-		} else {
+		if (sourceImagesTextField.getText().isEmpty() 
+				|| destinationImagesTextField.getText().isEmpty() 
+				|| sourceImagesTextField.getText() == destinationImagesTextField.getText())	{
 			IJ.log("Please specify the Source and Destination directories. Those should be different!");
+			return;
 		}
+		
+		Double zMin = null;
+		Double zMax = null;
+		if (!darkFrameZMinTextField.getText().isEmpty() || !darkFrameZMaxTextField.getText().isEmpty()) {
+			try {
+				zMin = Double.parseDouble(darkFrameZMinTextField.getText());
+				zMax = Double.parseDouble(darkFrameZMaxTextField.getText());
+			} catch (Exception e) {
+				IJ.log("Dark frame Min and Max values must be numbers!");
+				return;				
+			}
+			if (zMax < zMin) {
+				IJ.log("Dark frame Min value must be smaller or equal to Max value!");
+				return;
+			}
+		}
+			
+		GUIDisableComponents();
+
+		final CidreOptions options = new CidreOptions();
+			
+		options.folderSource = sourceImagesTextField.getText() + File.separator;
+		options.fileFilterSource = sourceImageMaskTextField.getText();
+		options.folderDestination = destinationImagesTextField.getText() + File.separator;
+		options.lambdaVreg = (!lambdaRCheckbox.isSelected()) ? (double)lambdaRScrollbar.getValue() / lambdaRScaleFactor : null;
+		options.lambdaZero = (!lambdaZCheckbox.isSelected()) ? (double)lambdaZScrollbar.getValue() / lambdaZScaleFactor : null;
+		options.zLimits[0] = zMin;
+		options.zLimits[1] = zMax;
+	
+		new Thread()
+		{
+		    public void run() {
+				if (!loadImages(options.folderSource, options.fileFilterSource, options)) {
+					GUIEnableComponents();
+					return;
+				}
+		
+				model = cidreModel(options);
+
+				GUIEnableComponents();
+					
+				IJ.log("Please press the 'Correct' button to correct the images with the built model");					
+		    }
+		}.start();
 	}
 
 	private void GUILoadModel() {

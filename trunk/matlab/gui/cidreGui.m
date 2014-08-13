@@ -22,7 +22,7 @@ function varargout = cidreGui(varargin)
 
 % Edit the above text to modify the response to help cidreGui
 
-% Last Modified by GUIDE v2.5 09-Aug-2014 18:05:20
+% Last Modified by GUIDE v2.5 13-Aug-2014 19:55:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -654,5 +654,3 @@ guidata(hObject, handles);
 
 
 % 185 187 confocal
-
-
