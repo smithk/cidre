@@ -23,6 +23,6 @@ To install the ImageJ plugin, simply copy `Cidre_Plugin.jar` to the plugins fold
 
 ============
 
-Copyright © 2015 Kevin Smith, Scientific Center for Optical and Electron Microscopy (SCOPEM),  Swiss Federal Institute of Technology Zurich (ETH Zurich), Switzerland. All rights reserved.
+Copyright © 2015 Kevin Smith, ETH Zurich (Swiss Federal Institute of Technology Zurich), Switzerland. All rights reserved.
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.
