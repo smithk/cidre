@@ -3,7 +3,14 @@ CIDRE
 
 About
 -----
-CIDRE is a general illumination correction method for optical microscopy. It is designed to correct collections of images by building a model of the illumination distortion directly from the image data. Larger image collections provide more robust corrections. Details of the method are described in [].
+CIDRE is a retrospective illumination correction method for optical microscopy. It is designed to correct collections of images by building a model of the illumination distortion directly from the image data. Larger image collections provide more robust corrections. Details of the method are described in 
+<ol>
+<li>
+K. Smith, Y. Li, F. Ficcinini, G. Csucs, A. Bevilacqua, and P. Horvath<br>
+<a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.3323.html">CIDRE: An Illumination Correction Method for Optical Microscopy</a>,
+Nature Methods, <em>Early Online Access 16 March 2015</em>, doi:10.1038/NMETH.3323
+</li>
+</ol>.
 
 Contents
 --------
@@ -23,6 +30,6 @@ To install the ImageJ plugin, simply copy `Cidre_Plugin.jar` to the plugins fold
 
 ============
 
-Copyright © 2014 Kevin Smith, Light Microscopy and Screening Centre (LMSC),  Swiss Federal Institute of Technology Zurich (ETH Zurich), Switzerland. All rights reserved.
+Copyright © 2015 Kevin Smith, ETH Zurich (Swiss Federal Institute of Technology Zurich), Switzerland. All rights reserved.
 
-This program is free software; you can redistribute it and/or modify it  under the terms of the GNU General Public License version 2 (or higher)  as published by the Free Software Foundation. This program is  distributed WITHOUT ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details. 
+<a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">CIDRE</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="www.kev-smith.com" property="cc:attributionName" rel="cc:attributionURL">K. Smith</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.<br />Based on a work at <a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/smithk/cidre" rel="dct:source">https://github.com/smithk/cidre</a>.
