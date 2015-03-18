@@ -18,7 +18,25 @@ function [S options] = cdr_preprocessData(S, maxI, options)
 %
 % See also: cidre, cidreGui
 
-
+% From the CIDRE project, an illumination correction method for optical
+% microscopy (https://github.com/smithk/cidre).
+% Copyright © 2015 Kevin Smith and Peter Horvath. Scientific Center for 
+% Optical and Electron Microscopy (SCOPEM), Swiss Federal Institute of 
+% Technology Zurich (ETH Zurich), Switzerland. All rights reserved.
+%
+% CIDRE is free software; you can redistribute it and/or modify it 
+% under the terms of the GNU General Public License version 2 (or higher) 
+% as published by the Free Software Foundation. See the license file in
+% the root folder. This program is distributed WITHOUT ANY WARRANTY; 
+% without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+% PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+%
+% This software includes a folder "3rdparty" containing minFunc, a 3rd
+% party software implementing L-BFGS. MinFunc is licensed under the
+% Creative Commons, Attribute, Non-Commercial license. To use this software 
+% for commercial purposes, you must replace minFunc with other software. 
+% Matlab offers an alternative (slower) implementation in the function 
+% fminlbfgs.
 
 
 %% determine if sufficient intensity information is provided by measuring entropy
@@ -130,7 +148,6 @@ if N < N_required
     warndlg(warnmsg);
     fprintf('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n%s\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n', warnmsg);
     alpha = l0 + ((l1-l0)/(N_required)) * N;
-    refresh;
     pause(0.1);
 else
     alpha = l1;

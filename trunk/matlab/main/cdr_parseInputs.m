@@ -11,11 +11,32 @@ function options = cdr_parseInputs(v)
 %
 % See also: cidre, cidreGui
 
-% handle case where arguments are passed as a cell
-if iscell(v{1})
-    v = v{1};
-end
+% From the CIDRE project, an illumination correction method for optical
+% microscopy (https://github.com/smithk/cidre).
+% Copyright © 2015 Kevin Smith and Peter Horvath. Scientific Center for 
+% Optical and Electron Microscopy (SCOPEM), Swiss Federal Institute of 
+% Technology Zurich (ETH Zurich), Switzerland. All rights reserved.
+%
+% CIDRE is free software; you can redistribute it and/or modify it 
+% under the terms of the GNU General Public License version 2 (or higher) 
+% as published by the Free Software Foundation. See the license file in
+% the root folder. This program is distributed WITHOUT ANY WARRANTY; 
+% without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+% PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+%
+% This software includes a folder "3rdparty" containing minFunc, a 3rd
+% party software implementing L-BFGS. MinFunc is licensed under the
+% Creative Commons, Attribute, Non-Commercial license. To use this software 
+% for commercial purposes, you must replace minFunc with other software. 
+% Matlab offers an alternative (slower) implementation in the function 
+% fminlbfgs.
 
+% handle case where arguments are passed as a cell
+if ~isempty(v)
+    if iscell(v{1})
+        v = v{1};
+    end
+end
 
 %% options that may be specified by the user
 options.lambda_vreg             = [];   % default value = 6

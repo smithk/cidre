@@ -2,24 +2,25 @@
 % has to be installed. 
 % See: http://www.mathworks.com/products/compiler/mcr/
 %
-% From the CIDRE project, a general illumination correction method for
-% optical microscopy (https://github.com/smithk/cidre).
-% Copyright © 2014 Kevin Smith and Peter Horvath, Light Microscopy and 
-% Screening Centre (LMSC), Swiss Federal Institute of Technology Zurich 
-% (ETHZ), Switzerland. All rights reserved.
+% From the CIDRE project, an illumination correction method for optical
+% microscopy (https://github.com/smithk/cidre).
+% Copyright © 2015 Kevin Smith and Peter Horvath. Scientific Center for 
+% Optical and Electron Microscopy (SCOPEM), Swiss Federal Institute of 
+% Technology Zurich (ETH Zurich), Switzerland. All rights reserved.
 %
-% This program is free software; you can redistribute it and/or modify it 
+% CIDRE is free software; you can redistribute it and/or modify it 
 % under the terms of the GNU General Public License version 2 (or higher) 
-% as published by the Free Software Foundation. This program is 
-% distributed WITHOUT ANY WARRANTY; without even the implied warranty of 
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
-% General Public License for more details.
+% as published by the Free Software Foundation. See the license file in
+% the root folder. This program is distributed WITHOUT ANY WARRANTY; 
+% without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+% PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 %
-% This software includes a subdirectory "3rdparty" which contains minFunc,
-% 3rd party software implementing L-BFGS. MinFunc is licensed under a 
-% Creative Commons, Attribute, Non-Commercial license. If you need to use 
-% this software for commercial purposes, you can replace minFunc with 
-% other software such as fminlbfgs, which may be slower.  
+% This software includes a folder "3rdparty" containing minFunc, a 3rd
+% party software implementing L-BFGS. MinFunc is licensed under the
+% Creative Commons, Attribute, Non-Commercial license. To use this software 
+% for commercial purposes, you must replace minFunc with other software. 
+% Matlab offers an alternative (slower) implementation in the function 
+% fminlbfgs.
 
 % get the path to this file
 p = mfilename('fullpath');
