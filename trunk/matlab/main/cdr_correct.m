@@ -42,7 +42,8 @@ function cdr_correct(model,options)
 
 % don't do anything if no destination folder is given
 if isempty(options.folder_destination)
-    return;
+    fprintf('No destination folder specified: not correcting source images.')
+    return
 end
 
 % if the destination folder doesn't exist, create it
