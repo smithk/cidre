@@ -91,15 +91,14 @@ end
 % parse the input arguments, return a structure containing parameters
 options = cdr_parseInputs(varargin);
 options.cidrePath = p;
-options;
 
 cdr_gui_toggle(options)
 
 % load the data, either from a folder or from a passed array
-[S options] = cdr_loadImages(source, options);
+[S, options] = cdr_loadImages(source, options);
 
 % learn the illumination correction model from processed data stack, S
-[model options] = cdr_cidreModel(S,options);
+[model, options] = cdr_cidreModel(S,options);
 
 % correct the source images, if requested
 cdr_correct(model,options);
