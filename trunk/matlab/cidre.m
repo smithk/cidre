@@ -72,6 +72,10 @@ function model = cidre(source, varargin)
 % Matlab offers an alternative (slower) implementation in the function 
 % fminlbfgs.
 
+if nargin==0
+	help(mfilename)
+	return
+end
 
 % add necessary paths
 if (~isdeployed)
