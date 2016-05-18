@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+		http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>net.imagej</groupId>
+		<artifactId>pom-imagej</artifactId>
+		<version>6.0.0</version>
+		<relativePath />
+	</parent>
+
+	<groupId>com.github.smithk</groupId>
+	<artifactId>Cidre_Plugin</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+
+	<name>CIDRE plugin for ImageJ</name>
+	<description>A general illumination correction method for optical microscopy.</description>
+
+	<developers>
+		<developer>
+			<id>smithk</id>
+			<name>Kevin Smith</name>
+			<email>cheeseburgerholdthecheese@gmail.com</email>
+			<url>http://www.kev-smith.com/</url>
+			<organization>University of Basel</organization>
+			<organizationUrl>https://www.unibas.ch/</organizationUrl>
+			<roles>
+				<role>architect</role>
+				<role>developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/smithk/cidre</connection>
+		<developerConnection>scm:git:git@github.com:smithk/cidre</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/smithk/cidre</url>
+	</scm>
+
+	<properties>
+		<main-class>Cidre_Plugin</main-class>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>${main-class}</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
