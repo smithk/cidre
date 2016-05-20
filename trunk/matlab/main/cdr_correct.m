@@ -42,7 +42,8 @@ function cdr_correct(model,options)
 
 % don't do anything if no destination folder is given
 if isempty(options.folder_destination)
-    return;
+    fprintf('No destination folder specified: not correcting source images.')
+    return
 end
 
 % if the destination folder doesn't exist, create it
@@ -51,8 +52,8 @@ if ~exist(options.folder_destination, 'dir')
 end
 
 % make sure the path ends with a slash
-if ~strcmpi(options.folder_destination(end), '/') && ~strcmpi(options.folder_destination(end), '\')
-    options.folder_destination(end+1) = '/';
+if isempty(regexp(options.folder_destination,'^.*[\\/]$'))
+    options.folder_destination(end+1) = filesep;
 end
 
 if isempty(options.correction_mode)

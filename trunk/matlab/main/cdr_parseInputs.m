@@ -60,6 +60,14 @@ options.number_of_quantiles     = 200;
 %options.lambda_barr             = [];
 
 
+if nargin==0 || isempty(v)
+    return
+end
+
+% handle case where arguments are passed as a cell
+if iscell(v{1})
+    v = v{1};
+end
 
 
 

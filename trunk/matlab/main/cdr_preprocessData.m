@@ -2,7 +2,7 @@ function [S options] = cdr_preprocessData(S, maxI, options)
 % Performs resizing, sorting, and compressing of previously loaded image 
 % data, S, to increase robustness and ensure the model generation is fast.
 % 
-% Usage:  [S options] = cdr_loadImages(S, maxI, options) 
+% Usage:  [S options] = cdr_preprocessData(S, maxI, options) 
 %
 % Input: S        an array containing the raw image data as read in by
 %                 cdr_loadImages.
@@ -16,7 +16,7 @@ function [S options] = cdr_preprocessData(S, maxI, options)
 %         OPTIONS returns the options structure with appropriatetly 
 %                 modified parameters: the estimated image bit depth
 %
-% See also: cidre, cidreGui
+% See also: cidre, cidreGui, cdr_loadImages
 
 % From the CIDRE project, an illumination correction method for optical
 % microscopy (https://github.com/smithk/cidre).
@@ -37,6 +37,7 @@ function [S options] = cdr_preprocessData(S, maxI, options)
 % for commercial purposes, you must replace minFunc with other software. 
 % Matlab offers an alternative (slower) implementation in the function 
 % fminlbfgs.
+
 
 
 %% determine if sufficient intensity information is provided by measuring entropy
