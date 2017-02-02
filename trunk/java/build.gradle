@@ -1,0 +1,48 @@
+plugins {
+    id 'application'
+    id 'eclipse'
+    id 'java'
+}
+
+group = 'com.cidre'
+version = '0.0.1'
+
+mainClassName = 'com.cidre.Main'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven {
+        url 'https://artifacts.unidata.ucar.edu/content/repositories/unidata-releases/'
+    }
+    maven {
+        url 'http://artifacts.openmicroscopy.org/artifactory/repo/'
+    }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'minutes'
+}
+
+dependencies {
+    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+    compile group: 'commons-lang', name: 'commons-lang', version: '2.6'
+    compile group: 'ome', name: 'formats-gpl', version: '5.3.3-SNAPSHOT'
+    compile 'net.sourceforge.argparse4j:argparse4j:0.7.0'
+    testCompile 'org.testng:testng:6.9.10'
+}
+
+test {
+    useTestNG() {
+        suiteXmlBuilder().suite(name: 'cidre') {
+            test (name: 'all-tests') {
+                packages {
+                    'package' (name: 'com.cidre.*')
+                }
+            }
+        }
+    }
+}
