@@ -145,7 +145,7 @@ public class ModelGenerator {
         minFuncOptions.Corr = 100;
         MinFuncResult minFuncResult = this.minFunc(
             imageStack, x0, minFuncOptions, 0.0,
-            pivotShiftX, pivotShiftY, Mestimator.LS, Q);
+            pivotShiftX, pivotShiftY, Mestimator.LS, Q, 0);
 
         return this.descriptor;
     }
@@ -278,7 +278,7 @@ public class ModelGenerator {
             List<double[] []> imageStack, double[] x0,
             MinFuncOptions minFuncOptions, double cauchy_w,
             double pivotShiftX, double[] pivotShiftY, Mestimator method,
-            double[] Q)
+            double[] Q, int TERM)
     {
         log.info("Running minimization");
         double[] x = null;
@@ -304,7 +304,8 @@ public class ModelGenerator {
 
         // Evaluate Initial Point
         ObjectiveResult objectiveResult = this.cdr_objective(
-            imageStack, x, cauchy_w, pivotShiftX, pivotShiftY, method, Q);
+            imageStack, x, cauchy_w, pivotShiftX,
+            pivotShiftY, method, Q, TERM);
         f = objectiveResult.E;
         double[] g = objectiveResult.G;
         double[] g_old = new double[g.length];
@@ -313,7 +314,7 @@ public class ModelGenerator {
     private ObjectiveResult cdr_objective(
             List<double[] []> imageStack, double[] x, double cauchy_w,
             double pivotShiftX, double[] pivotShiftY, Mestimator method,
-            double[] Q)
+            double[] Q, int TERM, double LAMBDA_VREG, double LAMBDA_ZERO)
     {
         double E = 0.0;
         double[] G = null;
@@ -394,11 +395,11 @@ public class ModelGenerator {
                                     1 + (val*val) / (cauchy_w * cauchy_w)
                                 ) / 2.0;
                             d_est_dv[z] =
-                                (Q[z]*val)
-                                / (1.0 + (val*val) / (cauchy_w * cauchy_w));
+                                (Q[z]*val) / (1.0 + (val*val)
+                                / (cauchy_w * cauchy_w));
                             d_est_db[z] =
-                                val
-                                / (1.0 + (val*val) / (cauchy_w * cauchy_w));
+                                val / (1.0 + (val*val)
+                                / (cauchy_w * cauchy_w));
                         }
                         break;
                 }
@@ -477,7 +478,7 @@ public class ModelGenerator {
                     h[i][c][r] /= sumh;
                     h1[c][r] = h[i][c][r] * (
                         (c - hsize / 2) * (c-hsize / 2)
-                        + (r - hsize /2 )*(r-hsize / 2) - 2 * std2)
+                        + (r - hsize /2 ) * (r-hsize / 2) - 2 * std2)
                         / (std2 * std2);
                     sumh1 += h1[c][r]; 
                 }
@@ -490,39 +491,45 @@ public class ModelGenerator {
                     // h{n} = sigmas(n)^2 * fspecial('log', hsize, sigmas(n));
                 }
             }
-            
-            // apply a LoG filter to v_img to penalize disagreements between neighbors
+            // apply a LoG filter to v_img to penalize disagreements
+            // between neighbors
             double[] v_LoG = this.imfilter_symmetric(
                 v_vec, width, height, h[i]);
-            for (int c = 0; c < v_LoG.length; c++)
-                v_LoG[c] /= sigmas.length;  // normalize by the # of sigmas used
-
+            for (int c = 0; c < v_LoG.length; c++) {
+                // normalize by the # of sigmas used
+                v_LoG[c] /= sigmas.length;
+            }
             // energy is quadratic LoG response
             energy_vreg[i] = 0;
-            for (int c = 0; c < v_LoG.length; c++)
+            for (int c = 0; c < v_LoG.length; c++) {
                 energy_vreg[i] += v_LoG[c]*v_LoG[c];
-
-            for (int c = 0; c < v_LoG.length; c++)
+            }
+            for (int c = 0; c < v_LoG.length; c++) {
                 v_LoG[c] *= 2;
-            double[] v_LoG2 = this.imfilter_symmetric(v_LoG, width, height, h[i]);
-            for (int c = 0; c < v_LoG2.length; c++)         
+            }
+            double[] v_LoG2 = this.imfilter_symmetric(
+                v_LoG, width, height, h[i]);
+            for (int c = 0; c < v_LoG2.length; c++) {
                 deriv_v_vreg[c] += v_LoG2[c];
+            }
         }
         // vreg term energy
         double E_vreg = 0;
-        for (int i = 0; i < sigmas.length; i++) E_vreg += energy_vreg[i];
+        for (int i = 0; i < sigmas.length; i++) {
+            E_vreg += energy_vreg[i];
+        }
         // vreg term gradient wrt v
         double[] G_V_vreg = deriv_v_vreg;
         // vreg term gradient wrt b
         double[] G_B_vreg = deriv_b_vreg;
 
         // The ZERO-LIGHT term
-        // We compute the energy of the zero-light term given v,b,zx,zy. We also
-        // compute its gradient wrt the random variables.
+        // We compute the energy of the zero-light term given v,b,zx,zy.
+        // We also compute its gradient wrt the random variables.
         double[] residual = new double[width * height];
-        for (int i = 0; i < residual.length; i++)
+        for (int i = 0; i < residual.length; i++) {
             residual[i] = v_vec[i] * px + b_vec[i] - py[i];
-
+        }
         double[] deriv_v_zero = new double[width * height];
         double[] deriv_b_zero = new double[width * height];
         double deriv_zx_zero = 0.0;
@@ -532,7 +539,7 @@ public class ModelGenerator {
             deriv_v_zero[i] = 2 * px * val;
             deriv_b_zero[i] = 2 * val;
             deriv_zx_zero += 2 * v_vec[i] * val;
-            deriv_zy_zero += -2 * val;
+            deriv_zy_zero += - 2 * val;
         }
 
         double E_zero = 0;  // zero light term energy
@@ -547,5 +554,179 @@ public class ModelGenerator {
         double G_ZX_zero = deriv_zx_zero;
         // zero light term gradient wrt zy
         double G_ZY_zero = deriv_zy_zero;
+
+        // The BARRIER term
+        // We compute the energy of the barrier term given v,b,zx,zy. We also
+        // compute its gradient wrt the random variables.
+
+        // upper limit - transition from zero energy to quadratic increase
+        double Q_UPPER_LIMIT = this.zLimitsResult.zmax;
+        // lower limit - transition from quadratic to zero energy
+        double Q_LOWER_LIMIT = this.zLimitsResult.zmin;
+        // rate of increase in energy
+        double Q_RATE = 0.001;
+
+        // barrier term gradients and energy components
+        double[] barrierResult = this.theBarrierFunction(
+            zx, Q_LOWER_LIMIT, Q_UPPER_LIMIT, Q_RATE);
+        double E_barr_xc = barrierResult[0];
+        double G_ZX_barr = barrierResult[1];
+
+        barrierResult = this.theBarrierFunction(
+            zy, Q_LOWER_LIMIT, Q_UPPER_LIMIT, Q_RATE);
+        double E_barr_yc = barrierResult[0];
+        double G_ZY_barr = barrierResult[1];
+
+        // barrier term energy
+        double E_barr = E_barr_xc + E_barr_yc;
+
+        // The total energy
+        // Find the sum of all components of the energy.
+        // TERMSFLAG switches on and off different components of the energy.
+        String term_str = "";
+        switch (TERM) {
+            case 0:
+                E = E_fit;
+                term_str = "fitting only";
+                break;
+            case 1:
+                E = E_fit + LAMBDA_VREG * E_vreg
+                    + LAMBDA_ZERO * E_zero
+                    + LAMBDA_BARR * E_barr;
+                term_str = "all terms";
+                break;
+        }
+
+        // The gradient of the energy
+        double[] G_V = null;
+        double[] G_B = null;
+        double G_ZX = 0;
+        double G_ZY = 0;
+        switch (TERM) {
+            case 0:
+                G_V = G_V_fit;
+                G_B = G_B_fit;
+                G_ZX = 0;
+                G_ZY = 0;
+                break;
+            case 1:
+                for (int i = 0; i < G_V_fit.length; i++) {
+                    G_V_fit[i] = G_V_fit[i] + LAMBDA_VREG * G_V_vreg[i]
+                                 + LAMBDA_ZERO * G_V_zero[i];
+                    G_B_fit[i] = G_B_fit[i] + LAMBDA_VREG * G_B_vreg[i]
+                                 + LAMBDA_ZERO * G_B_zero[i];
+                }
+                G_V = G_V_fit;
+                G_B = G_B_fit;
+                G_ZX = LAMBDA_ZERO * G_ZX_zero + LAMBDA_BARR * G_ZX_barr;
+                G_ZY = LAMBDA_ZERO * G_ZY_zero + LAMBDA_BARR * G_ZY_barr;
+                break;
+        }
+
+        // vectorize the gradient
+        G = new double[x.length];
+
+        int pG = 0;
+        for (int i = 0; i < G_V.length; i++)
+            G[pG++] = G_V[i];
+        for (int i = 0; i < G_B.length; i++)
+            G[pG++] = G_B[i];
+        G[pG++] = G_ZX;
+        G[pG++] = G_ZY;
+        log.info("Iteration = {} {} {}; zx,zy=({}, {}); E={}",
+                 ITER, MESTIMATOR, term_str, zx, zy, E);
+        ObjectiveResult result = new ObjectiveResult();
+        result.E = E;
+        result.G = G;
+        return result;
+    }
+
+    private double[] imfilter_symmetric(
+        double[] pixels, int width, int height, double[][] k)
+    {
+        int kc = k.length / 2;
+        double[] kernel = new double[k.length * k.length];
+        double[] result = new double[width * height];
+        for (int i = 0; i < k.length; i++) {
+            for (int j = 0; j < k.length; j++) {
+                kernel[i * k.length + j] = k[i][j];
+            }
+        }
+        double sum;
+        int offset, i;
+        int edgeDiff;
+        boolean edgePixel;
+        int xedge = width - kc;
+        int yedge = height - kc;
+        int nx, ny;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                sum = 0;
+                i = 0;
+                edgePixel = x < kc || x >= xedge || y < kc || y >= yedge;
+                for (int u = -kc; u <= kc; u++) {
+                    offset = (x+u)*height + y;
+                    for (int v = -kc; v <= kc; v++) {
+                        if (edgePixel) {
+                            nx = x + u;
+                            ny = y + v;
+                            edgeDiff = 0;
+                            if (nx < 0)
+                                edgeDiff = (-2 * nx - 1) * height;
+                            else if (nx >= width)
+                                edgeDiff = (-2 * (nx - width) - 1) * height;
+                            if (ny < 0)
+                                edgeDiff += -2*ny - 1;
+                            else if (ny >= height)
+                                edgeDiff += -2 * (ny - height) - 1;
+                            sum += pixels[offset + v + edgeDiff] * kernel[i++];
+                        } else {
+                            sum += pixels[offset + v] * kernel[i++];
+                        }
+                    }
+                }
+                result[x * height + y] = sum;
+            }
+        }
+        return result;
+    }
+
+    /*
+     * The barrier function has a well shape. It has quadratically increasing
+     * energy below xmin, zero energy between xmin and xmax, and quadratically
+     * increasing energy above xmax. The rate of increase is determined
+     * by width
+     */
+    private double[] theBarrierFunction(
+        double x, double xmin, double xmax, double width)
+    {
+        double[] result = new double[] {0.0, 0.0}; // E G
+        double xl1 = xmin;
+        double xl2 = xl1 + width;
+
+        double xh2 = xmax;
+        double xh1 = xh2 - width;
+
+        if (x <= xl1) {
+            result[0] = ((x - xl2) / (xl2 - xl1)) * ((x - xl2) / (xl2 - xl1));
+            result[1] = (2 * (x - xl2)) / ((xl2 - xl1) * (xl2 - xl1));
+        }
+        else if ((x >= xl1) && (x <= xl2)) {
+            result[0] = ((x - xl2) / (xl2 - xl1)) * ((x - xl2)/(xl2 - xl1));
+            result[1] = (2 * (x - xl2))  / ((xl2 - xl1) * (xl2 - xl1));
+        }
+        else if ((x > xl2) && (x < xh1)) {
+            result[0] = 0;
+            result[1] = 0;
+        }
+        else if ((x >= xh1) && (x < xh2)) {
+            result[0] = ((x - xh1)/(xh2 - xh1)) * ((x - xh1)/(xh2 - xh1));
+            result[1] = (2 * (x - xh1))  / ((xh2 - xh1) * (xh2 - xh1));
+        }
+        else {
+            result[0] = ((x - xh1) / (xh2 - xh1)) * ((x - xh1) / (xh2 - xh1));
+            result[1] = (2* (x - xh1))  / ((xh2 - xh1) * (xh2 - xh1));
+        }
+        return result;
     }
 }
