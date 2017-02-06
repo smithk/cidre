@@ -66,8 +66,8 @@ public class ModelGenerator {
             }
         }
 
-        Double lambdaVreg = Math.pow(10, options.lambdaVreg);
-        Double lambdaZero = Math.pow(10, options.lambdaZero);
+        double lambdaVreg = Math.pow(10, options.lambdaVreg);
+        double lambdaZero = Math.pow(10, options.lambdaZero);
         // initial guesses for the correction surfaces
         double[] v0 = new double[width * height];
         double[] b0 = new double[width * height];
@@ -87,7 +87,7 @@ public class ModelGenerator {
         int mid_ind = (depth - 1) / 2;
         double pivotShiftX = Q[mid_ind];
         for (int i = 0; i < Q.length; i++) Q[i] = Q[i] - pivotShiftX;
-        
+
         // next, the shift for each location q
         double[][] doubleArray;
         double[] pivotShiftY = new double[width * height];
@@ -120,8 +120,9 @@ public class ModelGenerator {
                  + " q_percent: {}\nz_limits: [{}, {}]",
                  options.lambdaVreg, options.lambdaZero, options.qPercent,
                  this.zLimitsResult.zmin, this.zLimitsResult.zmax);
-        // vector containing initial values of the variables we want to estimate
-        //x0 = [v0(:); b0(:); zx0; zy0];
+        // vector containing initial values of the variables
+        // we want to estimate
+        // x0 = [v0(:); b0(:); zx0; zy0];
         double[] x0 = new double[2 * width * height + 2];
         int pX = 0;
         for (int i = 0; i < v0.length; i++) {
@@ -145,7 +146,8 @@ public class ModelGenerator {
         minFuncOptions.Corr = 100;
         MinFuncResult minFuncResult = this.minFunc(
             imageStack, x0, minFuncOptions, 0.0,
-            pivotShiftX, pivotShiftY, Mestimator.LS, Q, 0);
+            pivotShiftX, pivotShiftY, Mestimator.LS,
+            Q, 0, lambdaVreg, lambdaZero);
 
         return this.descriptor;
     }
@@ -278,7 +280,7 @@ public class ModelGenerator {
             List<double[] []> imageStack, double[] x0,
             MinFuncOptions minFuncOptions, double cauchy_w,
             double pivotShiftX, double[] pivotShiftY, Mestimator method,
-            double[] Q, int TERM)
+            double[] Q, int TERM, double lambdaVreg, double lambdaZero)
     {
         log.info("Running minimization");
         double[] x = null;
@@ -305,10 +307,191 @@ public class ModelGenerator {
         // Evaluate Initial Point
         ObjectiveResult objectiveResult = this.cdr_objective(
             imageStack, x, cauchy_w, pivotShiftX,
-            pivotShiftY, method, Q, TERM);
+            pivotShiftY, method, Q, TERM, lambdaVreg, lambdaZero);
         f = objectiveResult.E;
         double[] g = objectiveResult.G;
         double[] g_old = new double[g.length];
+
+        int computeHessian = 0;
+        int funEvals = 1;
+
+        // Compute optimality of initial point
+        double optCond = Double.MIN_VALUE;
+        for (int j = 0; j < g.length; j++)
+        {
+            double absValue = Math.abs(g[j]);
+            if (optCond < absValue)
+                optCond = absValue;
+        }
+
+        // Exit if initial point is optimal
+        if (optCond <= minFuncOptions.optTol)
+        {
+            exitflag=1;
+            log.info("Optimality Condition below optTol");
+            MinFuncResult minFuncResult = new MinFuncResult();
+            minFuncResult.x = x;
+            minFuncResult.f = f;
+            return minFuncResult;
+        }
+
+        double[][] S = new double[p][minFuncOptions.Corr];
+        double[][] Y = new double[p][minFuncOptions.Corr];
+        double[]  YS = new double[minFuncOptions.Corr];
+        int lbfgs_start = 0;
+        int lbfgs_end = 0;
+        double Hdiag = 1.0;
+
+        // Perform up to a maximum of 'maxIter' descent steps:
+        for (int i = 0; i < minFuncOptions.maxIter; i++)
+        {
+            // LBFGS
+            if (i == 0)
+            {
+                // Initially use steepest descent direction
+                for (int j = 0; j < g.length; j++) d[j] = -g[j];
+                lbfgs_start = 0;
+                lbfgs_end = -1;
+                Hdiag = 1.0;
+            } else {
+                double[] gMg_old = new double[g.length];
+                for (int j = 0; j < g.length; j++) {
+                    gMg_old[j] = g[j] - g_old[j];
+                }
+                double[] tPd = new double[d.length];
+                for (int j = 0; j < d.length; j++) {
+                    tPd[j] = t * d[j];
+                }
+                LbfgsAddResult lbfgsAddResult = this.lbfgsAdd(
+                    gMg_old, tPd, S, Y, YS, lbfgs_start, lbfgs_end, Hdiag);
+                S = lbfgsAddResult.S;
+                Y = lbfgsAddResult.Y;
+                YS = lbfgsAddResult.YS;
+                lbfgs_start = lbfgsAddResult.lbfgs_start;
+                lbfgs_end = lbfgsAddResult.lbfgs_end;
+                Hdiag = lbfgsAddResult.Hdiag;
+                boolean skipped = lbfgsAddResult.skipped;
+
+                d = this.lbfgsProd(g, S, Y, YS, lbfgs_start, lbfgs_end, Hdiag);
+            }
+            for (int j = 0; j < g.length; j++) {
+                g_old[j] = g[j];
+            }
+
+            // ****************** COMPUTE STEP LENGTH ************************
+
+            // Directional Derivative
+            double gtd = 0.0;
+            for (int j = 0; j < g.length; j++)
+                gtd += g[j] * d[j];
+
+            // Check that progress can be made along direction
+            if (gtd > - minFuncOptions.progTol)
+            {
+                exitflag = 2;
+                log.info("Directional Derivative below progTol");
+                break;
+            }
+
+            // Select Initial Guess
+            if (i == 0) {
+                double sumAbsG = 0.0;
+                for (int j = 0; j < g.length; j++) {
+                    sumAbsG += Math.abs(g[j]);
+                }
+                t = Math.min(1.0, 1.0/sumAbsG);
+            } else {
+                //if (LS_init == 0)
+                // Newton step
+                t = 1.0;
+            }
+            double f_old = f;
+            double gtd_old = gtd;
+
+            int Fref = 1;
+            double fr;
+            // Compute reference fr if using non-monotone objective
+            if (Fref == 1) {
+                fr = f;
+            }
+
+            computeHessian = 0;
+            // Line Search
+            f_old = f;
+
+            WolfeLineSearchResult wolfeLineSearchResult = WolfeLineSearch(
+                imageStack, x, t, d, f, g, gtd, c1, c2, LS_interp,
+                LS_multi, 25, minFuncOptions.progTol, 1,
+                cauchy_w, pivotShiftX, pivotShiftY, method,
+                Q, TERM, lambdaVreg, lambdaZero);
+            t = wolfeLineSearchResult.t;
+            f = wolfeLineSearchResult.f_new;
+            g = wolfeLineSearchResult.g_new;
+            int LSfunEvals = wolfeLineSearchResult.funEvals;
+
+            funEvals = funEvals + LSfunEvals;
+            for (int j = 0; j < x.length; j++)
+                x[j] += t * d[j];
+
+            // Compute Optimality Condition
+            optCond = Double.MIN_VALUE;
+            for (int j = 0; j < g.length; j++)
+            {
+                double absValG = Math.abs(g[j]);
+                if (optCond < absValG)
+                    optCond = absValG;
+            }
+
+            // Check Optimality Condition
+            if (optCond <= minFuncOptions.optTol)
+            {
+                exitflag=1;
+                log.info("Optimality Condition below optTol");
+                break;
+            }
+
+            // ***** Check for lack of progress ******
+            double maxAbsTD = Double.MIN_VALUE;
+            for (int j = 0; j < d.length; j++) {
+                double absValG = Math.abs(t * d[j]);
+                if (maxAbsTD < absValG)
+                    maxAbsTD = absValG;
+            }
+            if (maxAbsTD <= minFuncOptions.progTol)
+            {
+                exitflag = 2;
+                log.info("Step Size below progTol");
+                break;
+            }
+
+            if (Math.abs(f - f_old) < minFuncOptions.progTol)
+            {
+                exitflag = 2;
+                log.info("Function Value changing by less than progTol");
+                break;
+            }
+
+            // **** Check for going over iteration/evaluation limit ****
+
+            if (funEvals * funEvalMultiplier >= maxFunEvals)
+            {
+                exitflag = 0;
+                log.info("Reached Maximum Number of Function Evaluations");
+                break;
+            }
+
+            if (i == minFuncOptions.maxIter)
+            {
+                exitflag = 0;
+                log.info("Reached Maximum Number of Iterations");
+                break;
+            }
+        }
+
+        MinFuncResult minFuncResult = new MinFuncResult();
+        minFuncResult.x = x;
+        minFuncResult.f = f;
+        return minFuncResult;
     }
 
     private ObjectiveResult cdr_objective(
@@ -633,8 +816,8 @@ public class ModelGenerator {
             G[pG++] = G_B[i];
         G[pG++] = G_ZX;
         G[pG++] = G_ZY;
-        log.info("Iteration = {} {} {}; zx,zy=({}, {}); E={}",
-                 ITER, MESTIMATOR, term_str, zx, zy, E);
+        log.info("Term str = {}; zx,zy = ({}, {}); E = {}",
+                  term_str, zx, zy, E);
         ObjectiveResult result = new ObjectiveResult();
         result.E = E;
         result.G = G;
@@ -728,5 +911,466 @@ public class ModelGenerator {
             result[1] = (2* (x - xh1))  / ((xh2 - xh1) * (xh2 - xh1));
         }
         return result;
+    }
+
+    private LbfgsAddResult lbfgsAdd(
+            double[] y, double[] s, double[][] S, double[][] Y,
+            double[] YS, int lbfgs_start, int lbfgs_end, double Hdiag)
+    {
+        double ys = 0.0;
+        for (int j = 0; j < y.length; j++)
+            ys += y[j] * s[j];
+        boolean skipped = false;
+        int corrections = S[0].length;
+        if (ys > 1e-10d)
+        {
+            if (lbfgs_end < corrections - 1)
+            {
+                lbfgs_end = lbfgs_end+1;
+                if (lbfgs_start != 0)
+                {
+                    if (lbfgs_start == corrections - 1)
+                        lbfgs_start = 0;
+                    else
+                        lbfgs_start = lbfgs_start+1;
+                }
+            } else {
+                lbfgs_start = Math.min(1, corrections);
+                lbfgs_end = 0;
+            }
+            for (int j = 0; j < s.length; j++)
+            {
+                S[j][lbfgs_end] = s[j];
+                Y[j][lbfgs_end] = y[j];
+            }
+            YS[lbfgs_end] = ys;
+            // Update scale of initial Hessian approximation
+            double yy = 0.0;
+            for (int j = 0; j < y.length; j++) {
+                yy += y[j] * y[j];
+            }
+            Hdiag = ys/yy;
+        } else {
+            skipped = false;
+        }
+        LbfgsAddResult lbfgsAddResult = new LbfgsAddResult();
+        lbfgsAddResult.S = S;
+        lbfgsAddResult.Y = Y;
+        lbfgsAddResult.YS = YS;
+        lbfgsAddResult.lbfgs_start = lbfgs_start;
+        lbfgsAddResult.lbfgs_end = lbfgs_end;
+        lbfgsAddResult.Hdiag = Hdiag;
+        lbfgsAddResult.skipped = skipped;
+        return lbfgsAddResult;
+    }
+
+    private double[] lbfgsProd(
+            double[] g, double[][] S, double[][] Y, double[] YS,
+            int lbfgs_start, int lbfgs_end, double Hdiag)
+    {
+        // BFGS Search Direction
+        // This function returns the (L-BFGS) approximate inverse Hessian,
+        // multiplied by the negative gradient
+
+        // Set up indexing
+        int nVars = S.length;
+        int maxCorrections = S[0].length;
+        int nCor;
+        int[] ind;
+        if (lbfgs_start == 0)
+        {
+            ind = new int[lbfgs_end];
+            for (int j = 0; j < ind.length; j++)
+                ind[j] = j;
+            nCor = lbfgs_end-lbfgs_start + 1;
+        } else {
+            ind = new int[maxCorrections];
+            for (int j = lbfgs_start; j < maxCorrections; j++)
+                ind[j - lbfgs_start] = j;
+            for (int j = 0; j <= lbfgs_end; j++)
+                ind[j + maxCorrections - lbfgs_start] = j;
+            nCor = maxCorrections;
+        }
+
+        double[] al = new double[nCor];
+        double[] be = new double[nCor];
+
+        double[] d = new double[g.length];
+        for (int j = 0; j < g.length; j++)
+            d[j] = - g[j];
+        for (int j = 0; j < ind.length; j++)
+        {
+            int i = ind[ind.length-j-1];
+            double sumSD = 0.0;
+            for (int k = 0; k < S.length; k++)
+                sumSD += (S[k][i] * d[k]) / YS[i];
+            al[i] = sumSD;
+            for (int k = 0; k < d.length; k++) {
+                d[k] -= al[i] * Y[k][i];
+            }
+        }
+
+        // Multiply by Initial Hessian
+        for (int j = 0; j < d.length; j++) {
+            d[j] = Hdiag * d[j];
+        }
+        for (int i = 0; i < ind.length; i++)
+        {
+            double sumYd = 0.0;
+            for (int j = 0; j < Y.length; j++) {
+                sumYd += Y[j][ind[i]] * d[j];
+            }
+            be[ind[i]] = sumYd / YS[ind[i]];
+            for (int j = 0; j < d.length; j++) {
+                d[j] += S[j][ind[i]] * (al[ind[i]] - be[ind[i]]);
+            }
+        }
+        return d;
+    }
+
+    private WolfeLineSearchResult WolfeLineSearch(
+            List<double[] []> imageStack, double[] x, double t, double[] d,
+            double f, double[] g, double gtd, double c1, double c2,
+            int LS_interp, int LS_multi, int maxLS, double progTol,
+            int saveHessianComp, double cauchy_w, double pivotShiftX,
+            double[] pivotShiftY, Mestimator method, double[] Q, int TERM,
+            double LAMBDA_VREG, double LAMBDA_ZERO)
+    {
+        double[] x2 = new double[x.length];
+        for (int j = 0; j < x.length; j++)
+            x2[j] = x[j] + t * d[j];
+        ObjectiveResult cdrObjectiveResult = this.cdr_objective(
+            imageStack, x, cauchy_w, pivotShiftX,
+            pivotShiftY, method, Q, TERM, LAMBDA_VREG, LAMBDA_ZERO);
+        double f_new = cdrObjectiveResult.E;
+        double[] g_new = cdrObjectiveResult.G;
+        int funEvals = 1;
+
+        double gtd_new = 0.0;
+        for (int j = 0; j < g.length; j++) {
+            gtd_new += g_new[j] * d[j];
+        }
+        // Bracket an Interval containing a point satisfying the
+        // Wolfe criteria
+
+        int LSiter = 0;
+        double t_prev = 0.0;
+        double f_prev = f;
+        double[] g_prev = new double[g.length];
+        for (int j = 0; j < g.length; j++) {
+            g_prev[j] = g[j];
+        }
+        double gtd_prev = gtd;
+        double nrmD = Double.MIN_VALUE;
+        for (int j = 0; j < d.length; j++) {
+            double absValD = Math.abs(d[j]);
+            if (nrmD < absValD) {
+                nrmD = absValD;
+            }
+        }
+        boolean done = false;
+
+        int bracketSize = 0;
+        double[] bracket = new double[2];
+        double[] bracketFval = new double[2];
+        double[] bracketGval = new double[2 * x.length];
+
+        while (LSiter < maxLS) {
+            if (f_new > f + c1 * t * gtd || (LSiter > 1 && f_new >= f_prev)) {
+                bracketSize = 2;
+                bracket[0] = t_prev; bracket[1] = t;
+                bracketFval[0] = f_prev; bracketFval[1] = f_new;
+                for (int j = 0; j < g_prev.length; j++) {
+                    bracketGval[j] = g_prev[j];
+                }
+                for (int j = 0; j < g_new.length; j++) {
+                    bracketGval[g_prev.length + j] = g_new[j];
+                }
+                break;
+            }
+            else if (Math.abs(gtd_new) <= - c2 * gtd) {
+                bracketSize = 1;
+                bracket[0] = t;
+                bracketFval[0] = f_new;
+                for (int j = 0; j < g_new.length; j++) {
+                    bracketGval[j] = g_new[j];
+                }
+                done = true;
+                break;
+            }
+            else if (gtd_new >= 0) {
+                bracketSize = 2;
+                bracket[0] = t_prev; bracket[1] = t;
+                bracketFval[0] = f_prev; bracketFval[1] = f_new;
+                for (int j = 0; j < g_prev.length; j++) {
+                    bracketGval[j] = g_prev[j];
+                }
+                for (int j = 0; j < g_new.length; j++) {
+                    bracketGval[g_prev.length + j] = g_new[j];
+                }
+                break;
+            }
+
+            double temp = t_prev;
+            t_prev = t;
+            double minStep = t + 0.01 * (t-temp);
+            double maxStep = t * 10;
+            if (LS_interp <= 1) {
+                t = maxStep;
+            }
+            else if (LS_interp == 2) {
+                double[] points = new double[2 * 3];
+                points[0] = temp; points[1] = f_prev; points[2] = gtd_prev;
+                points[3] = t;    points[4] = f_new;  points[5] = gtd_new;
+                t = this.polyinterp(points, minStep, maxStep);
+            }
+
+            f_prev = f_new;
+            for (int j = 0; j < g_new.length; j++) {
+                g_prev[j] = g_new[j];
+            }
+            gtd_prev = gtd_new;
+
+            x2 = new double[x.length];
+            for (int j = 0; j < x.length; j++) {
+                x2[j] = x[j] + t * d[j];
+            }
+            cdrObjectiveResult = cdr_objective(
+                imageStack, x2, cauchy_w, pivotShiftX,
+                pivotShiftY, method, Q, TERM, LAMBDA_VREG, LAMBDA_ZERO);
+            f_new = cdrObjectiveResult.E;
+            g_new = cdrObjectiveResult.G;
+            funEvals++;
+            gtd_new = 0.0;
+            for (int j = 0; j < g.length; j++) {
+                gtd_new += g_new[j] * d[j];
+            }
+            LSiter++;
+        }
+
+        if (LSiter == maxLS) {
+            bracketSize = 2;
+            bracket[0] = 0; bracket[1] = t;
+            bracketFval[0] = f; bracketFval[1] = f_new;
+            for (int j = 0; j < g.length; j++) {
+                bracketGval[j] = g[j];
+            }
+            for (int j = 0; j < g_new.length; j++) {
+                bracketGval[g.length + j] = g_new[j];
+            }
+        }
+
+        // Zoom Phase
+
+        // We now either have a point satisfying the criteria, or a bracket
+        // surrounding a point satisfying the criteria
+        // Refine the bracket until we find a point satisfying the criteria
+        boolean insufProgress = false;
+        //int Tpos = 1;
+        //int LOposRemoved = 0;
+        int LOpos;
+        int HIpos;
+        double f_LO;
+
+        while (!done && LSiter < maxLS) {
+            // Find High and Low Points in bracket
+            //[f_LO LOpos] = min(bracketFval);
+            //HIpos = -LOpos + 3;
+
+            if (bracketSize < 2) {
+                f_LO = bracketFval[0];
+                LOpos = 0; HIpos = 1;
+            } else  {
+                if (bracketFval[0] <= bracketFval[1]) {
+                    f_LO = bracketFval[0];
+                    LOpos = 0; HIpos = 1;
+                } else {
+                    f_LO = bracketFval[1];
+                    LOpos = 1; HIpos = 0;
+                }
+            }
+
+            // LS_interp == 2
+            //t = polyinterp([bracket(1) bracketFval(1) bracketGval(:,1)'*d
+            //    bracket(2) bracketFval(2) bracketGval(:,2)'*d],doPlot);
+
+            {
+                double val0 = 0.0;
+                for (int j = 0; j < g.length; j++) {
+                    val0 += bracketGval[j] * d[j];
+                }
+                double val1 = 0.0;
+                for (int j = 0; j < g.length; j++) {
+                    val1 += bracketGval[g.length + j] * d[j];
+                }
+                double[] points = new double[2 * 3];
+                points[0] = bracket[0]; points[1] = bracketFval[0];
+                points[2] = val0;
+                points[3] = bracket[1]; points[4] = bracketFval[1];
+                points[5] = val1;
+                t = this.polyinterp(points, null, null);
+            }
+
+            // Test that we are making sufficient progress
+            double enumerator = Math.min(
+                Math.max(bracket[0], bracket[1]) - t,
+                t - Math.min(bracket[0], bracket[1]));
+            double denominator = Math.max(bracket[0], bracket[1])
+                                 - Math.min(bracket[0], bracket[1]);
+            if (enumerator / denominator < 0.1)
+            {
+                if (insufProgress
+                    || t >= Math.max(bracket[0], bracket[1])
+                    || t <= Math.min(bracket[0], bracket[1]))
+                {
+                    double term1 = Math.abs(
+                        t - Math.max(bracket[0], bracket[1]));
+                    double term2 = Math.abs(
+                        t - Math.min(bracket[0], bracket[1]));
+                    if (term1 < term2)
+                    {
+                        t = Math.max(bracket[0], bracket[1])
+                            - 0.1 * (Math.max(bracket[0], bracket[1])
+                            - Math.min(bracket[0], bracket[1]));
+                    } else {
+                        t = Math.min(bracket[0], bracket[1])
+                            + 0.1 * (Math.max(bracket[0], bracket[1])
+                            - Math.min(bracket[0], bracket[1]));
+                    }
+                    insufProgress = false;
+                } else {
+                    insufProgress = true;
+                }
+            } else {
+                insufProgress = false;
+            }
+
+            // Evaluate new point
+            x2 = new double[x.length];
+            for (int j = 0; j < x.length; j++) {
+                x2[j] = x[j] + t * d[j];
+            }
+            cdrObjectiveResult = cdr_objective(
+                imageStack, x2, cauchy_w, pivotShiftX,
+                pivotShiftY, method, Q, TERM, LAMBDA_VREG, LAMBDA_ZERO);
+            f_new = cdrObjectiveResult.E;
+            g_new = cdrObjectiveResult.G;
+            funEvals++;
+            gtd_new = 0.0;
+            for (int j = 0; j < g.length; j++) {
+                gtd_new += g_new[j] * d[j];
+            }
+            LSiter++;
+
+            boolean armijo = f_new < f + c1 * t * gtd;
+            if (!armijo || f_new >= f_LO) {
+                // Armijo condition not satisfied
+                // or not lower than lowest point
+                bracket[HIpos] = t;
+                bracketFval[HIpos] = f_new;
+                for (int j = 0; j < g.length; j++) {
+                    bracketGval[g.length * HIpos + j] = g_new[j];
+                }
+                //Tpos = HIpos;
+            } else {
+                if (Math.abs(gtd_new) <= - c2 * gtd) {
+                    // Wolfe conditions satisfied
+                    done = true;
+                } else if (gtd_new * (bracket[HIpos] - bracket[LOpos]) >= 0) {
+                    // Old HI becomes new LO
+                    bracket[HIpos] = bracket[LOpos];
+                    bracketFval[HIpos] = bracketFval[LOpos];
+                    for (int j = 0; j < g.length; j++) {
+                        bracketGval[g.length * HIpos + j] =
+                            bracketGval[g.length * LOpos + j];
+                    }
+                }
+                // New point becomes new LO
+                bracket[LOpos] = t;
+                bracketFval[LOpos] = f_new;
+                for (int j = 0; j < g.length; j++) {
+                    bracketGval[g.length * LOpos + j] = g_new[j];
+                }
+                //Tpos = LOpos;
+            }
+
+            if (!done && Math.abs(bracket[0] - bracket[1]) * nrmD < progTol)
+                break;
+        }
+
+        if (bracketSize < 2) {
+            f_LO = bracketFval[0];
+            LOpos = 0; HIpos = 1;
+        } else {
+            if (bracketFval[0] <= bracketFval[1])
+            {
+                f_LO = bracketFval[0];
+                LOpos = 0; HIpos = 1;
+            } else {
+                f_LO = bracketFval[1];
+                LOpos = 1; HIpos = 0;
+            }
+        }
+
+        t = bracket[LOpos];
+        f_new = bracketFval[LOpos];
+        for (int j = 0; j < g.length; j++)
+            g_new[j] = bracketGval[g.length * LOpos + j];
+        WolfeLineSearchResult wolfeLineSearchResult =
+            new WolfeLineSearchResult();
+        wolfeLineSearchResult.t = t;
+        wolfeLineSearchResult.f_new = f_new;
+        wolfeLineSearchResult.g_new = g_new;
+        wolfeLineSearchResult.funEvals = funEvals;
+        return wolfeLineSearchResult;
+    }
+
+    private double polyinterp(
+            double[] points, Double xminBound, Double xmaxBound)
+    {
+        double xmin = Math.min(points[0], points[3]);
+        double xmax = Math.max(points[0], points[3]);
+
+        // Compute Bounds of Interpolation Area
+        if (xminBound == null)
+            xminBound = xmin;
+        if (xmaxBound == null)
+            xmaxBound = xmax;
+
+        // Code for most common case:
+        //   - cubic interpolation of 2 points
+        //       w/ function and derivative values for both
+
+        // Solution in this case (where x2 is the farthest point):
+        // d1 = g1 + g2 - 3*(f1-f2)/(x1-x2);
+        // d2 = sqrt(d1^2 - g1*g2);
+        // minPos = x2 - (x2 - x1)*((g2 + d2 - d1)/(g2 - g1 + 2*d2));
+        // t_new = min(max(minPos,x1),x2);
+
+        int minPos;
+        int notMinPos;
+        if (points[0] < points[3]) {
+            minPos = 0;
+        } else {
+            minPos = 1;
+        }
+        notMinPos = (1 - minPos) * 3;
+        double d1 =
+            points[minPos + 2] + points[notMinPos + 2]
+            - 3 * (points[minPos + 1] - points[notMinPos + 1])
+            / (points[minPos] - points[notMinPos]);
+        double d2_2 = d1 * d1 - points[minPos + 2] * points[notMinPos + 2];
+
+        if (d2_2 >= 0.0) {
+            double d2 = Math.sqrt(d2_2);
+            double t =
+               points[notMinPos]
+               - (points[notMinPos] - points[minPos])
+               * ((points[notMinPos + 2] + d2 - d1) / (points[notMinPos + 2]
+               - points[minPos + 2] + 2 * d2));
+            return Math.min(Math.max(t, xminBound), xmaxBound);
+        } else {
+            return (xmaxBound+xminBound) / 2.0;
+        }
     }
 }
