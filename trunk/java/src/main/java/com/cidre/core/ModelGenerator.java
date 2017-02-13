@@ -1,5 +1,6 @@
 package com.cidre.core;
 
+import java.awt.Dimension;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -30,7 +31,6 @@ public class ModelGenerator {
             List<double[][]> imageStack)
     {
         this.options = options;
-        this.descriptor = descriptor;
     }
 
     public ModelDescriptor generate(List<double[] []> imageStack)
@@ -148,7 +148,80 @@ public class ModelGenerator {
             imageStack, x0, minFuncOptions, 0.0,
             pivotShiftX, pivotShiftY, Mestimator.LS,
             Q, 0, lambdaVreg, lambdaZero);
+        double[] x  = minFuncResult.x;
+        double fval = minFuncResult.f;
 
+        // unpack
+        double[] v1 = Arrays.copyOfRange(x, 0, width * height);
+        double[] b1 = Arrays.copyOfRange(
+            x, width * height, 2 * width * height);
+        double zx1 = x[2 * width * height];
+        double zy1 = x[2 * width * height + 1];
+
+        // 2nd optimization using REGULARIZED ROBUST fitting
+        // use the mean standard error of the LS fitting to set the width of the
+        // CAUCHY function
+        double mse = computeStandardError(imageStack, v1, b1, Q);
+
+        // vector containing initial values of the variables we want to estimate
+        double[] x1 = new double[2 * width * height + 2];
+
+        int pX1 = 0;
+        for (int i = 0; i < v1.length; i++)
+            x1[pX1++] = v1[i];
+        for (int i = 0; i < b1.length; i++)
+            x1[pX1++] = b1[i];
+        x1[pX1++] = zx1;
+        x1[pX1++] = zy1;
+
+        minFuncResult = this.minFunc(
+            imageStack, x1, minFuncOptions, mse,
+            pivotShiftX, pivotShiftY, Mestimator.CAUCHY,
+            Q, 1, lambdaVreg, lambdaZero);
+        x = minFuncResult.x;
+        fval = minFuncResult.f;
+
+        // unpack the optimized v surface, b surface, xc, and yc from the vector x
+        double[] v = Arrays.copyOfRange(x, 0, width * height);
+        double[] b_pivoted = Arrays.copyOfRange(
+            x, width * height, 2 * width * height);
+        double zx = x[2 * width * height];
+        double zy = x[2 * width * height + 1];
+
+        // Build the final correction model
+
+        // Unpivot b: move pivot point back to the original location
+        double[] b_unpivoted = new double[height];
+        for (int c = 0; c < width; c++) {
+            for (int r = 0; r < height; r++) {
+                b_unpivoted[c * width + r] =
+                    pivotShiftY[c * height + r]
+                    + b_pivoted[c * height + r]
+                    - pivotShiftX * v[c * height + r];
+            }
+        }
+
+        // shift the b surface to the zero-light surface
+        double[] z = new double[width * height];
+        for (int c = 0; c < width; c++) {
+            for (int r = 0; r < height; r++) {
+                z[c * height + r] = b_unpivoted[c * height + r]
+                                    + zx * v[c * height + r];
+            }
+        }
+        this.descriptor = new ModelDescriptor();
+        this.descriptor.imageSize = new Dimension(
+            options.imageSize.width, options.imageSize.height);
+        this.descriptor.v = imresize_bilinear(
+            v, width, height,
+            options.imageSize.width, options.imageSize.height);
+        this.descriptor.z = imresize_bilinear(
+            z, width, height,
+            options.imageSize.width, options.imageSize.height);
+        this.descriptor.imageSize_small = new Dimension(
+            options.workingSize.width, options.workingSize.height);
+        this.descriptor.v_small   = v;
+        this.descriptor.z_small   = z;
         return this.descriptor;
     }
 
@@ -1372,5 +1445,155 @@ public class ModelGenerator {
         } else {
             return (xmaxBound+xminBound) / 2.0;
         }
+    }
+
+    private double computeStandardError(
+            List<double[] []> imageStack, double[] v, double[] b, double[] Q)
+    {
+        // computes the mean standard error of the regression
+        int Z = imageStack.size();
+        int width = this.options.workingSize.width;
+        int height = this.options.workingSize.height;
+
+        // initialize a matrix to contain all the standard error calculations
+        double[] se = new double[width * height];
+
+        // compute the standard error at each location
+        double[] q = new double[Z];
+        double[] fitvals = new double[Z];
+        double[] residuals = new double[Z];
+        for (int c = 0; c < width; c++) {
+            for (int r = 0; r < height; r++) {
+                
+                double vi = v[c * height + r];
+                double bi = b[c * height + r];
+
+                for (int z = 0; z < Z; z++) {
+                    q[z] = imageStack.get(z)[c][r];
+                    fitvals[z] = bi + Q[z] * vi;
+                    residuals[z] = q[z] - fitvals[z];
+                }
+                double sum_residuals2 = 0;
+                for (int z = 0; z < Z; z++) {
+                    sum_residuals2 += residuals[z] * residuals[z];
+                }
+                se[c * height + r] = Math.sqrt(sum_residuals2 / (Z-2));
+            }
+        }
+        return mean(se);
+    }
+
+    private double[] imresize_bilinear(
+            double[] doubleArray, int origWidth, int origHeight,
+            int newWidth, int newHeight)
+    {
+        // Width
+        double wScale = (double) newWidth / origWidth;
+        double kernel_width = 2;
+        double[] u = new double[newWidth];
+        int[] left = new int[newWidth];
+        for (int j = 0; j < newWidth; j++) {
+            u[j] = (j + 1) / wScale + 0.5 * (1.0 - 1.0 / wScale);
+            left[j] = (int) Math.floor(u[j] - kernel_width / 2.0);
+        }
+        int P = (int) Math.ceil(kernel_width) + 2;
+        int wIndices[][] = new int[P][newWidth];
+        double wWeights[][] = new double[P][newWidth];
+        for (int p = 0; p < P; p++) {
+            for (int j = 0; j < newWidth; j++) {
+                wIndices[p][j] = left[j] + p;
+                wWeights[p][j] = triangle(u[j] - wIndices[p][j]);
+            }
+        }
+        // Normalize the weights matrix so that each row sums to 1.
+        for (int j = 0; j < newWidth; j++) {
+            double sum = 0;
+            for (int p = 0; p < P; p++) {
+                sum += wWeights[p][j];
+            }
+            for (int p = 0; p < P; p++) {
+                wWeights[p][j] /= sum;
+            }
+        }
+        // Clamp out-of-range indices; has the effect of replicating end-points.
+        for (int p = 0; p < P; p++) {
+            for (int j = 0; j < newWidth; j++) {
+                wIndices[p][j]--;
+                if (wIndices[p][j] < 0)
+                    wIndices[p][j] = 0;
+                else if (wIndices[p][j] >= origWidth - 1)
+                    wIndices[p][j] = origWidth - 1;
+            }
+        }
+
+        // resizeDimCore - width
+        double[] doubleArray1 = new double[newWidth * origHeight];
+        for (int i = 0; i < newWidth; i++) {
+            for (int p = 0; p < P; p++) {
+                for(int j = 0; j < origHeight; j++) {
+                    doubleArray1[i * origHeight + j] +=
+                        (doubleArray[wIndices[p][i] * origHeight + j])
+                        * wWeights[p][i];
+                }
+            }
+        }
+
+        // Height
+        double hScale = (double) newHeight / origHeight;
+        kernel_width = 2.0;
+        u = new double[newHeight];
+        left = new int[newHeight];
+        for (int j = 0; j < newHeight; j++) {
+            u[j] = (j + 1) / hScale + 0.5 * (1.0 - 1.0 / hScale);
+            left[j] = (int) Math.floor(u[j] - kernel_width / 2.0);
+        }
+        P = (int) Math.ceil(kernel_width) + 2;
+        int hIndices[][] = new int[P][newHeight];
+        double hWeights[][] = new double[P][newHeight];
+        for (int p = 0; p < P; p++) {
+            for (int j = 0; j < newHeight; j++) {
+                hIndices[p][j] = left[j] + p;
+                hWeights[p][j] = triangle(u[j] - hIndices[p][j]);
+            }
+        }
+        // Normalize the weights matrix so that each row sums to 1.
+        for (int j = 0; j < newHeight; j++) {
+            double sum = 0;
+            for (int p = 0; p < P; p++) {
+                sum += hWeights[p][j]; 
+            }
+            for (int p = 0; p < P; p++) {
+                hWeights[p][j] /= sum;
+            }
+        }
+        // Clamp out-of-range indices; has the effect of replicating end-points.
+        for (int p = 0; p < P; p++) {
+            for (int j = 0; j < newHeight; j++) {
+                hIndices[p][j]--;
+                if (hIndices[p][j] < 0)
+                    hIndices[p][j] = 0;
+                else if (hIndices[p][j] >= origHeight - 1)
+                    hIndices[p][j] = origHeight - 1;
+            }
+        }
+
+        // resizeDimCore - height
+        double[] doubleArray2 = new double[newWidth * newHeight];
+        for(int j = 0; j < newHeight; j++) {
+            for (int p = 0; p < P; p++) {
+                for (int i = 0; i < newWidth; i++) {
+                    doubleArray2[i * newHeight + j] +=
+                        (doubleArray1[i * origHeight + hIndices[p][j]])
+                        * hWeights[p][j];
+                }
+            }
+        }
+        return doubleArray2;
+    }
+
+    private final double triangle(double x) {
+        return (x+1.0) * ((-1.0 <= x)
+               && (x < 0.0) ? 1.0 : 0.0) + (1.0-x) * ((0.0 <= x)
+               && (x <= 1.0) ? 1.0 : 0.0);
     }
 }
