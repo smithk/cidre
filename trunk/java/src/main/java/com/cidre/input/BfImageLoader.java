@@ -1,6 +1,8 @@
 package com.cidre.input;
 
 import java.awt.Dimension;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +15,7 @@ import com.cidre.core.Options;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
+import loci.formats.FormatException;
 import loci.formats.ImageReader;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataOptions;
@@ -44,6 +47,8 @@ public class BfImageLoader extends ImageLoader {
     private int sizeZ;
     private int pixelType;
 
+    private List<ImageReader> readers;
+
     public BfImageLoader(
             Options options, String fileMask,
             List<Integer> series, List<Integer> channels,
@@ -54,6 +59,7 @@ public class BfImageLoader extends ImageLoader {
         this.timepoints = new ArrayList<Integer>(timepoints);
         this.channels = new ArrayList<Integer>(channels);
         this.zSections = new ArrayList<Integer>(zSections);
+        this.readers = new ArrayList<ImageReader>();
     }
 
     public BfImageLoader(
@@ -84,7 +90,8 @@ public class BfImageLoader extends ImageLoader {
         this.populateDimensions();
         this.options.imageSize = new Dimension(this.sizeX, this.sizeY);
         this.options.workingSize = determineWorkingSize(
-            this.options.imageSize, this.options.targetNumPixels); 
+            this.options.imageSize, this.options.targetNumPixels);
+        this.readers.clear();
         if (this.getFileList(this.source, this.fileMask)) {
             for (String fileName : this.options.fileNames) {
                 ImageReader reader = new ImageReader();
@@ -94,8 +101,9 @@ public class BfImageLoader extends ImageLoader {
                 if (!this.checkReaderDimensions(reader)) {
                     return false;
                 }
-                
+                this.readers.add(reader);
             }
+            this.readPlanes();
             return true;
         } else {
             return false;
@@ -207,5 +215,49 @@ public class BfImageLoader extends ImageLoader {
             log.error("Pixel type differs for {}", reader.getCurrentFile());
         }
         return noError;
+    }
+
+    public static double[][] toDoubleArray(
+            byte[] byteArray, int width, int height)
+    {
+        int times = Double.SIZE / Byte.SIZE;
+        double[] doubles = new double[byteArray.length / times];
+        for(int i = 0;i < doubles.length; i++) {
+            doubles[i] = ByteBuffer.wrap(
+                byteArray, i * times, times).getDouble();
+        }
+        return doubles;
+    }
+
+    private void readPlanes() throws Exception {
+        if (this.readers.isEmpty()) {
+            throw new Exception("No readers initialised.");
+        }
+        this.S.clear();
+        for (ImageReader reader : this.readers)
+        {
+            this.loadPlanes(reader);
+        }
+    }
+
+    private void loadPlanes(ImageReader reader) throws Exception
+    {
+        for (int s : this.series) {
+            reader.setSeries(s);
+            for (int c : this.channels) {
+                for (int z : this.zSections) {
+                    for (int t : this.timepoints) {
+                       byte[] plane = reader.openBytes(
+                           reader.getIndex(z, c, t));
+                       double[][] planeDouble = this.toDoubleArray(
+                           plane, this.sizeX, this.sizeY);
+                       double[][] planeRescaled = this.imresize(
+                           planeDouble, this.sizeX, this.sizeY,
+                           this.options.workingSize.width,
+                           this.options.workingSize.height);
+                    }
+                }
+            }
+        }
     }
 }
