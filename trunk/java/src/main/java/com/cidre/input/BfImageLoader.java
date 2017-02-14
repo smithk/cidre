@@ -217,14 +217,17 @@ public class BfImageLoader extends ImageLoader {
         return noError;
     }
 
-    public static double[][] toDoubleArray(
+    public double[][] toDoubleArray(
             byte[] byteArray, int width, int height)
     {
         int times = Double.SIZE / Byte.SIZE;
-        double[] doubles = new double[byteArray.length / times];
-        for(int i = 0;i < doubles.length; i++) {
-            doubles[i] = ByteBuffer.wrap(
-                byteArray, i * times, times).getDouble();
+        double[][] doubles = new double[width][height];
+        for (int y = 0; y < height; y++) {
+            for(int x = 0; x < width; x++) {
+                doubles[x][y] = ByteBuffer.wrap(
+                    byteArray, x * times + y * width * times, times).
+                    getDouble();
+            }
         }
         return doubles;
     }
