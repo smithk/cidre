@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -221,5 +222,68 @@ public abstract class ImageLoader {
         return new Dimension(
             (int) Math.round(widthOriginal * scaleWorking),
             (int) Math.round(heightOriginal * scaleWorking));
+    }
+
+    protected void findMax(double[][] image) {
+        for (int x = 0; x < this.options.workingSize.width; x++) {
+            for (int y = 0; y < this.options.workingSize.height; y++) {
+                this.maxI = Math.max(this.maxI, (int) image[x][y]);
+            }
+        }
+    }
+
+    protected void preprocessData() {
+        // determine if sufficient intensity
+        // information is provided by measuring entropy
+
+        // store the bit depth of the images in options,
+        // needed for entropy measurement
+        this.setBitDepth();
+        // compute the stack's entropy
+        double entropy = getEntropy(options);
+        // resample the stack if the entropy is too high
+        scaleSpaceResampling(entropy);
+
+        // sort the intensity values at every location in the image stack
+        // at every pixel location (r,c), we sort all the recorded
+        // intensities from the provided images and replace the stack
+        // with the new sorted values.
+        // The new S has the same data as before, but sorted in ascending
+        // order in the 3rd dimension.
+        
+        log.info(" Sorting intensity by pixel location and resizing...");
+        //S = sort(S,3);
+        double[] doubleValues = new double[S.size()];
+        for (int x = 0; x < this.options.workingSize.width; x++) {
+            for (int y = 0; y < this.options.workingSize.height; y++) {
+                for (int z = 0; z < S.size(); z++) 
+                    doubleValues[z] = S.get(z)[x][y];
+                Arrays.sort(doubleValues);
+                for (int z = 0; z < S.size(); z++) 
+                    S.get(z)[x][y] = doubleValues[z];
+            }
+        }
+        // compress the stack: reduce the effective number
+        // of images for efficiency
+        resizeStack(options);
+    }
+
+    private void setBitDepth() {
+        // Sets options.bitDepth describing the provided images as 8-bit, 12-bit, or 
+        // 16-bit. If options.bitDepth is provided, it is used. Otherwise the bit 
+        //depth is estimated from the max observed intensity, maxI.
+        final int xy_2_8 = 256;
+        final int xy_2_12 = 4096;
+        final int xy_2_16 = 65536;
+
+        if (maxI > xy_2_12)
+             this.options.bitDepth = xy_2_16;
+        else if (maxI > xy_2_8)
+             this.options.bitDepth = xy_2_12;
+        else
+             thisoptions.bitDepth = xy_2_8;
+         log.info(
+             " {}-bit depth images (estimated from max intensity={})",
+             Math.round(Math.log(options.bitDepth) / Math.log(2)), maxI);
     }
 }
