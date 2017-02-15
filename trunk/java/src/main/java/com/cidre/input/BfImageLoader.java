@@ -237,6 +237,7 @@ public class BfImageLoader extends ImageLoader {
             throw new Exception("No readers initialised.");
         }
         this.S.clear();
+        this.maxI = 0.0;
         for (ImageReader reader : this.readers)
         {
             this.loadPlanes(reader);
@@ -258,6 +259,8 @@ public class BfImageLoader extends ImageLoader {
                            planeDouble, this.sizeX, this.sizeY,
                            this.options.workingSize.width,
                            this.options.workingSize.height);
+                       this.findMax(planeRescaled);
+                       this.S.add(planeRescaled);
                     }
                 }
             }
