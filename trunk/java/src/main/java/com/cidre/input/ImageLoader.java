@@ -314,7 +314,10 @@ public abstract class ImageLoader {
             for (int x = 0; x < this.options.workingSize.width; x++) {
                 for (int y = 0; y < this.options.workingSize.height; y++) {
                     value = doubleArray[x][y];
-                    log.debug("Value {}, int value {}", value, Math.round(value));
+                    if (value < 0) {
+                        log.debug("[{},{}] Value {}, int value {}",
+                                  x, y, value, Math.round(value));
+                    }
                     hist[(int) Math.round(value)]++;
                 }
             }
@@ -397,7 +400,7 @@ public abstract class ImageLoader {
         int R = R1;                 // scale space reduced image height
         int C = C1;                 // scale space reduced image width
 
-        SCALE.add(S);
+        SCALE.add(this.S);
         while ((R > 1) && (C > 1))
         {
             List<double[][]> elementS = new ArrayList<double[][]>();
@@ -443,8 +446,7 @@ public abstract class ImageLoader {
                     S2.add(imresize(SCALE.get(i).get(j), C, R, C1, R1));
                 }
             }
-            
-            S = S2;
+            this.S = S2;
         }
         else
         {
@@ -491,7 +493,6 @@ public abstract class ImageLoader {
             // compute the mean image of each region of S defined by regionLimits,
             // and add the mean image to S2
             List<double[][]> S2 = new ArrayList<double[][]>();
-
             for (int i = 0; i < options.numberOfQuantiles; i++) {
                 double[][] doubleArray = new double[C][R];
 
@@ -507,13 +508,11 @@ public abstract class ImageLoader {
                         {
                             doubleValues[z - regionLimits[i][0]] = S.get(z)[x][y];
                         }
-
                         doubleArray[x][y] = mean(doubleValues);
                     }
-
                 S2.add(doubleArray);
             }
-            S = S2;
+            this.S = S2;
         }
     }
 
@@ -525,7 +524,6 @@ public abstract class ImageLoader {
         double kernel_width = 4.0;
         if (scale < 1.0)
             kernel_width /= scale;
-        
         double[] u = new double[newHeight];
         int[] left = new int[newHeight];
         for (int j = 0; j < newHeight; j++) {
@@ -538,12 +536,13 @@ public abstract class ImageLoader {
         for (int p = 0; p < P; p++) {
             for (int j = 0; j < newHeight; j++) {
                 hIndices[p][j] = left[j] + p;
-                if (scale < 1.0)
-                    hWeights[p][j] = scale * cubic(scale * (u[j] - hIndices[p][j]));
-                else
+                if (scale < 1.0) {
+                    hWeights[p][j] =
+                        scale * cubic(scale * (u[j] - hIndices[p][j]));
+                } else {
                     hWeights[p][j] = cubic(u[j] - hIndices[p][j]);
-
-            }                       
+                }
+            }
         }
         // Normalize the weights matrix so that each row sums to 1.
         for (int j = 0; j < newHeight; j++) {
@@ -554,7 +553,7 @@ public abstract class ImageLoader {
             for (int p = 0; p < P; p++) {
                 hWeights[p][j] /= sum;
             }
-        }                   
+        }
         // Clamp out-of-range indices; has the effect of replicating end-points.
         for (int p = 0; p < P; p++) {
             for (int j = 0; j < newHeight; j++) {
@@ -565,15 +564,15 @@ public abstract class ImageLoader {
                     hIndices[p][j] = origHeight - 1;
             }
         }
-        
         // resizeDimCore - height
         double[][] doubleArrayH = new double[origWidth][newHeight];
         for(int j = 0; j < newHeight; j++) {
             for (int p = 0; p < P; p++) {
                 for (int i = 0; i < origWidth; i++) {
-                    doubleArrayH[i][j] += (doubleArray[i][hIndices[p][j]]) * hWeights[p][j];
+                    doubleArrayH[i][j] +=
+                        (doubleArray[i][hIndices[p][j]]) * hWeights[p][j];
                 }
-            }                       
+            }
         }
 
         // Width
@@ -594,10 +593,11 @@ public abstract class ImageLoader {
             for (int j = 0; j < newWidth; j++) {
                 wIndices[p][j] = left[j] + p;
                 if (scale < 1.0)
-                    wWeights[p][j] = scale * cubic(scale * (u[j] - wIndices[p][j]));
+                    wWeights[p][j] =
+                        scale * cubic(scale * (u[j] - wIndices[p][j]));
                 else
                     wWeights[p][j] = cubic(u[j] - wIndices[p][j]);
-            }                       
+            }
         }
         // Normalize the weights matrix so that each row sums to 1.
         for (int j = 0; j < newWidth; j++) {
@@ -608,28 +608,28 @@ public abstract class ImageLoader {
             for (int p = 0; p < P; p++) {
                 wWeights[p][j] /= sum;
             }
-        }                   
+        }
         // Clamp out-of-range indices; has the effect of replicating end-points.
         for (int p = 0; p < P; p++) {
             for (int j = 0; j < newWidth; j++) {
                 wIndices[p][j]--;
-                if (wIndices[p][j] < 0)
+                if (wIndices[p][j] < 0) {
                     wIndices[p][j] = 0;
-                else if (wIndices[p][j] >= origWidth - 1)
+                } else if (wIndices[p][j] >= origWidth - 1) {
                     wIndices[p][j] = origWidth - 1;
+                }
             }
         }
-        
         // resizeDimCore - width
         double[][] doubleArrayW = new double[newWidth][newHeight];
         for (int i = 0; i < newWidth; i++) {
             for (int p = 0; p < P; p++) {
                 for(int j = 0; j < newHeight; j++) {
-                    doubleArrayW[i][j] += (doubleArrayH[wIndices[p][i]][j]) * wWeights[p][i];
+                    doubleArrayW[i][j] +=
+                        (doubleArrayH[wIndices[p][i]][j]) * wWeights[p][i];
                 }
-            }                       
+            }
         }
-        
         return doubleArrayW;
     }
 
