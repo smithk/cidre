@@ -2,10 +2,14 @@ package com.cidre;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cidre.core.ModelDescriptor;
+import com.cidre.core.ModelGenerator;
 import com.cidre.core.Options;
 import com.cidre.input.BfImageLoader;
 
@@ -78,13 +82,21 @@ public class Main {
             root.setLevel(Level.INFO);
         }
         Options options = new Options();
+        List<Integer> series = new ArrayList<Integer>();
+        for (int i = 0; i < 100; i++) {
+            series.add(i);
+        }
         BfImageLoader image_loader = new BfImageLoader(
-            options, this.input.get(0), new ArrayList<Integer>(0), 0, 0, 0);
+            options, this.input.get(0), series, 0, 0, 0);
         try {
             image_loader.loadImages();
         } catch (Exception e) {
             log.error(e.toString());
             e.printStackTrace();
         }
+        ModelGenerator model = new ModelGenerator(image_loader.getOptions());
+        ModelDescriptor descriptor = model.generate(image_loader.getStack());
+        log.info("Image size: {}}", descriptor.imageSize);
+        log.info("Image size small: {}", descriptor.imageSize_small);
     };
 }
