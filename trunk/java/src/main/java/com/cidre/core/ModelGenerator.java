@@ -189,10 +189,10 @@ public class ModelGenerator {
         // Build the final correction model
 
         // Unpivot b: move pivot point back to the original location
-        double[] b_unpivoted = new double[height];
+        double[] b_unpivoted = new double[width * height];
         for (int c = 0; c < width; c++) {
             for (int r = 0; r < height; r++) {
-                b_unpivoted[c * width + r] =
+                b_unpivoted[c * height + r] =
                     pivotShiftY[c * height + r]
                     + b_pivoted[c * height + r]
                     - pivotShiftX * v[c * height + r];
