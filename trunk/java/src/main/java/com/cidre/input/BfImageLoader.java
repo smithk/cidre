@@ -1,7 +1,6 @@
 package com.cidre.input;
 
 import java.awt.Dimension;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +14,7 @@ import com.cidre.core.Options;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
-import loci.formats.FormatException;
+import loci.common.DataTools;
 import loci.formats.ImageReader;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataOptions;
@@ -50,11 +49,11 @@ public class BfImageLoader extends ImageLoader {
     private List<ImageReader> readers;
 
     public BfImageLoader(
-            Options options, String fileMask,
+            Options options, String source,
             List<Integer> series, List<Integer> channels,
             List<Integer> zSections, List<Integer> timepoints)
     {
-        super(options, fileMask);
+        super(options, source);
         this.series = new ArrayList<Integer>(series);
         this.timepoints = new ArrayList<Integer>(timepoints);
         this.channels = new ArrayList<Integer>(channels);
@@ -63,19 +62,21 @@ public class BfImageLoader extends ImageLoader {
     }
 
     public BfImageLoader(
-            Options options, String fileMask,
+            Options options, String source,
             List<Integer> series, Integer channel,
             Integer zSection, Integer timepoint)
     {
-        super(options, fileMask);
+        super(options, source);
         this.series = new ArrayList<Integer>(series);
         this.timepoints = new ArrayList<Integer>(timepoint);
         this.channels = new ArrayList<Integer>(channel);
         this.zSections = new ArrayList<Integer>(zSection);
+        this.readers = new ArrayList<ImageReader>();
     }
 
     @Override
     public boolean loadImages() throws Exception {
+        this.getFileList(this.source);
         this.checkRequestedDimensions();
         // store the number of source images into the options structure
         this.options.numImagesProvided =
@@ -92,22 +93,18 @@ public class BfImageLoader extends ImageLoader {
         this.options.workingSize = determineWorkingSize(
             this.options.imageSize, this.options.targetNumPixels);
         this.readers.clear();
-        if (this.getFileList(this.source, this.fileMask)) {
-            for (String fileName : this.options.fileNames) {
-                ImageReader reader = new ImageReader();
-                this.initializeReader(reader);
-                reader.setId(fileName);
-                log.info("Reading planes from {}", fileName);
-                if (!this.checkReaderDimensions(reader)) {
-                    return false;
-                }
-                this.readers.add(reader);
+        for (String fileName : this.options.fileNames) {
+            ImageReader reader = new ImageReader();
+            this.initializeReader(reader);
+            reader.setId(fileName);
+            if (!this.checkReaderDimensions(reader)) {
+                return false;
             }
-            this.readPlanes();
-            return true;
-        } else {
-            return false;
+            this.readers.add(reader);
         }
+        this.readPlanes();
+        this.preprocessData();
+        return true;
     }
 
     private void populateDimensions() throws Exception {
@@ -218,19 +215,73 @@ public class BfImageLoader extends ImageLoader {
     }
 
     public double[][] toDoubleArray(
-            byte[] byteArray, int width, int height)
-    {
-        int times = Double.SIZE / Byte.SIZE;
-        double[][] doubles = new double[width][height];
-        for (int y = 0; y < height; y++) {
-            for(int x = 0; x < width; x++) {
-                doubles[x][y] = ByteBuffer.wrap(
-                    byteArray, x * times + y * width * times, times).
-                    getDouble();
+            byte[] b, int bpp, boolean fp, boolean little,
+            int width, int height)
+          {
+            log.debug("Converting to double array with bpp={}", bpp);
+            double[][] doubles = new double[width][height];
+            if (bpp == 1) {
+                for (int y = 0; y < height; y++) {
+                    for(int x = 0; x < width; x++) {
+                        doubles[x][y] = (double) b[x + y * width];
+                    }
+                }
+                return doubles;
             }
-        }
-        return doubles;
-    }
+            else if (bpp == 2) {
+                short value = 0;
+                short max = 0;
+                for (int y = 0; y < height; y++) {
+                    for(int x = 0; x < width; x++) {
+                        value = DataTools.bytesToShort(
+                                b, x * 2 + y * 2 * width, 2, little);
+                        if (value > max) {
+                            max = value;
+                        }
+                        doubles[x][y] = (double) value;
+                    }
+                }
+                log.info("Max value {}, double {}", max, (double) max);
+                return doubles;
+            }
+            else if (bpp == 4 && fp) {
+                for (int y = 0; y < height; y++) {
+                    for(int x = 0; x < width; x++) {
+                        doubles[x][y] = (double) DataTools.bytesToFloat(
+                            b, x * 4 + y * 4 * width, 4, little);
+                    }
+                }
+                return doubles;
+            }
+            else if (bpp == 4) {
+                for (int y = 0; y < height; y++) {
+                    for(int x = 0; x < width; x++) {
+                        doubles[x][y] = (double) DataTools.bytesToInt(
+                            b, x * 4 + y * 4 * width, 4, little);
+                    }
+                }
+                return doubles;
+            }
+            else if (bpp == 8 && fp) {
+                for (int y = 0; y < height; y++) {
+                    for(int x = 0; x < width; x++) {
+                        doubles[x][y] = DataTools.bytesToDouble(
+                            b, x * 8 + y * 8 * width, 8, little);
+                    }
+                }
+                return doubles;
+            }
+            else if (bpp == 8) {
+                for (int y = 0; y < height; y++) {
+                    for(int x = 0; x < width; x++) {
+                        doubles[x][y] = DataTools.bytesToLong(
+                            b, x * 8 + y * 8 * width, 8, little);
+                    }
+                }
+                return doubles;
+            }
+            return null;
+          }
 
     private void readPlanes() throws Exception {
         if (this.readers.isEmpty()) {
@@ -240,12 +291,19 @@ public class BfImageLoader extends ImageLoader {
         this.maxI = 0.0;
         for (ImageReader reader : this.readers)
         {
+            log.info("Reading planes from {}", reader.getCurrentFile());
             this.loadPlanes(reader);
         }
     }
 
     private void loadPlanes(ImageReader reader) throws Exception
     {
+        boolean fp = false;
+        if (reader.getPixelType() == loci.formats.FormatTools.FLOAT ||
+            reader.getPixelType() == loci.formats.FormatTools.DOUBLE)
+        {
+            fp = true;
+        }
         for (int s : this.series) {
             reader.setSeries(s);
             for (int c : this.channels) {
@@ -254,7 +312,12 @@ public class BfImageLoader extends ImageLoader {
                        byte[] plane = reader.openBytes(
                            reader.getIndex(z, c, t));
                        double[][] planeDouble = this.toDoubleArray(
-                           plane, this.sizeX, this.sizeY);
+                           plane, (int) (0.125 * reader.getBitsPerPixel()),
+                           fp, reader.isLittleEndian(),
+                           this.sizeX, this.sizeY);
+                       if (planeDouble == null) {
+                           throw new Exception("We got no pixels.");
+                       }
                        double[][] planeRescaled = this.imresize(
                            planeDouble, this.sizeX, this.sizeY,
                            this.options.workingSize.width,
