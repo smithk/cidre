@@ -5,6 +5,10 @@ import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.cidre.core.Options;
+import com.cidre.input.BfImageLoader;
+
 import ch.qos.logback.classic.Level;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -72,6 +76,15 @@ public class Main {
             root.setLevel(Level.DEBUG);
         } else {
             root.setLevel(Level.INFO);
+        }
+        Options options = new Options();
+        BfImageLoader image_loader = new BfImageLoader(
+            options, this.input.get(0), new ArrayList<Integer>(0), 0, 0, 0);
+        try {
+            image_loader.loadImages();
+        } catch (Exception e) {
+            log.error(e.toString());
+            e.printStackTrace();
         }
     };
 }
