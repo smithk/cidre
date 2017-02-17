@@ -215,33 +215,32 @@ public class BfImageLoader extends ImageLoader {
     }
 
     public double[][] toDoubleArray(
-            byte[] b, int bpp, boolean fp, boolean little,
+            byte[] b, int bpp, boolean fp, boolean little, boolean unsigned,
             int width, int height)
           {
             log.debug("Converting to double array with bpp={}", bpp);
             double[][] doubles = new double[width][height];
             if (bpp == 1) {
+                byte minValue = 0;
+                if (unsigned)
+                    minValue = Byte.MIN_VALUE;
                 for (int y = 0; y < height; y++) {
                     for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) b[x + y * width];
+                        doubles[x][y] = (double) (b[x + y * width] - minValue);
                     }
                 }
                 return doubles;
             }
             else if (bpp == 2) {
-                short value = 0;
-                short max = 0;
+                short minValue = 0;
+                if (unsigned)
+                    minValue = Short.MIN_VALUE;
                 for (int y = 0; y < height; y++) {
                     for(int x = 0; x < width; x++) {
-                        value = DataTools.bytesToShort(
-                                b, x * 2 + y * 2 * width, 2, little);
-                        if (value > max) {
-                            max = value;
-                        }
-                        doubles[x][y] = (double) value;
+                        doubles[x][y] = (double) (DataTools.bytesToShort(
+                            b, x * 2 + y * 2 * width, 2, little) - minValue);
                     }
                 }
-                log.info("Max value {}, double {}", max, (double) max);
                 return doubles;
             }
             else if (bpp == 4 && fp) {
@@ -255,9 +254,12 @@ public class BfImageLoader extends ImageLoader {
             }
             else if (bpp == 4) {
                 for (int y = 0; y < height; y++) {
+                    int minValue = 0;
+                    if (unsigned)
+                        minValue = Integer.MIN_VALUE;
                     for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) DataTools.bytesToInt(
-                            b, x * 4 + y * 4 * width, 4, little);
+                        doubles[x][y] = (double) (DataTools.bytesToInt(
+                            b, x * 4 + y * 4 * width, 4, little) - minValue);
                     }
                 }
                 return doubles;
@@ -272,10 +274,13 @@ public class BfImageLoader extends ImageLoader {
                 return doubles;
             }
             else if (bpp == 8) {
+                long minValue = 0;
+                if (unsigned)
+                    minValue = Long.MIN_VALUE;
                 for (int y = 0; y < height; y++) {
                     for(int x = 0; x < width; x++) {
-                        doubles[x][y] = DataTools.bytesToLong(
-                            b, x * 8 + y * 8 * width, 8, little);
+                        doubles[x][y] = (double) (DataTools.bytesToLong(
+                            b, x * 8 + y * 8 * width, 8, little) - minValue);
                     }
                 }
                 return doubles;
@@ -299,10 +304,17 @@ public class BfImageLoader extends ImageLoader {
     private void loadPlanes(ImageReader reader) throws Exception
     {
         boolean fp = false;
+        boolean unsigned = false;
         if (reader.getPixelType() == loci.formats.FormatTools.FLOAT ||
             reader.getPixelType() == loci.formats.FormatTools.DOUBLE)
         {
             fp = true;
+        }
+        if (reader.getPixelType() == loci.formats.FormatTools.UINT8 ||
+            reader.getPixelType() == loci.formats.FormatTools.UINT16 ||
+            reader.getPixelType() == loci.formats.FormatTools.UINT32)
+        {
+            unsigned = true;
         }
         for (int s : this.series) {
             reader.setSeries(s);
@@ -313,7 +325,7 @@ public class BfImageLoader extends ImageLoader {
                            reader.getIndex(z, c, t));
                        double[][] planeDouble = this.toDoubleArray(
                            plane, (int) (0.125 * reader.getBitsPerPixel()),
-                           fp, reader.isLittleEndian(),
+                           fp, reader.isLittleEndian(), unsigned,
                            this.sizeX, this.sizeY);
                        if (planeDouble == null) {
                            throw new Exception("We got no pixels.");
