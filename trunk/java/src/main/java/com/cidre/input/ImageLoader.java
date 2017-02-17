@@ -33,6 +33,14 @@ public abstract class ImageLoader {
 
     public abstract boolean loadImages() throws Exception;
 
+    public List<double[][]> getStack() {
+        return this.S;
+    }
+
+    public Options getOptions() {
+        return this.options;
+    }
+
     protected boolean getFileList(String source) {
         log.info("Searching for files");
         if (source != null && !source.equals("")) {
