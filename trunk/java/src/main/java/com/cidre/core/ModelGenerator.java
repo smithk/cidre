@@ -26,9 +26,7 @@ public class ModelGenerator {
 
     private ZLimitsResult zLimitsResult;
 
-    public ModelGenerator(
-            ModelDescriptor model, Options options,
-            List<double[][]> imageStack)
+    public ModelGenerator(Options options)
     {
         this.options = options;
     }
