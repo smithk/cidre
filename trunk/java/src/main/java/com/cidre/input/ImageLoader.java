@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cidre.core.CidreMath;
 import com.cidre.core.Options;
 
 
@@ -32,6 +33,13 @@ public abstract class ImageLoader {
     }
 
     public abstract boolean loadImages() throws Exception;
+
+    public abstract double[][] loadPlane(Integer planeIndex) throws Exception;
+
+    public abstract double[][] loadPlane(
+        int series, int channel, int timepoint, int zPlane) throws Exception;
+
+    public abstract int getNumberOfImages();
 
     public List<double[][]> getStack() {
         return this.S;
@@ -516,7 +524,7 @@ public abstract class ImageLoader {
                         {
                             doubleValues[z - regionLimits[i][0]] = S.get(z)[x][y];
                         }
-                        doubleArray[x][y] = mean(doubleValues);
+                        doubleArray[x][y] = CidreMath.mean(doubleValues);
                     }
                 S2.add(doubleArray);
             }
@@ -641,12 +649,4 @@ public abstract class ImageLoader {
         return doubleArrayW;
     }
 
-    private double mean(double[] a) {
-        int i;
-        double sum = 0;
-        for (i = 0; i < a.length; i++) {
-            sum += a[i];
-        }
-        return sum / a.length;
-    }
 }
