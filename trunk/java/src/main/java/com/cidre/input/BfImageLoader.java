@@ -1,6 +1,7 @@
 package com.cidre.input;
 
 import java.awt.Dimension;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,6 +16,7 @@ import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
 import loci.common.DataTools;
+import loci.formats.FormatException;
 import loci.formats.ImageReader;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataOptions;
@@ -340,5 +342,154 @@ public class BfImageLoader extends ImageLoader {
                 }
             }
         }
+    }
+
+    private ImageReader getReaderByPlane(Integer planeIndex) {
+        return this.readers.get(0);
+    }
+
+    @Override
+    public int getNumberOfImages() {
+        return this.options.numImagesProvided;
+    }
+
+    public float[][] toFloatArray(
+            byte[] b, int bpp, boolean fp,
+            boolean little, boolean unsigned,
+            int width, int height)
+    {
+        log.debug("Converting to double array with bpp={}", bpp);
+        float[][] floats = new float[width][height];
+        if (bpp == 1) {
+            byte minValue = 0;
+            if (unsigned)
+                minValue = Byte.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    floats[x][y] = (float) (b[x + y * width] - minValue);
+                }
+            }
+            return floats;
+        }
+        else if (bpp == 2) {
+            short minValue = 0;
+            if (unsigned)
+                minValue = Short.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    floats[x][y] = (float) (DataTools.bytesToShort(
+                        b, x * 2 + y * 2 * width, 2, little) - minValue);
+                }
+            }
+            return floats;
+        }
+        else if (bpp == 4 && fp) {
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    floats[x][y] = (float) DataTools.bytesToFloat(
+                        b, x * 4 + y * 4 * width, 4, little);
+                }
+            }
+            return floats;
+        }
+        else if (bpp == 4) {
+            for (int y = 0; y < height; y++) {
+                int minValue = 0;
+                if (unsigned)
+                    minValue = Integer.MIN_VALUE;
+                for(int x = 0; x < width; x++) {
+                    floats[x][y] = (float) (DataTools.bytesToInt(
+                        b, x * 4 + y * 4 * width, 4, little) - minValue);
+                }
+            }
+            return floats;
+        }
+        else if (bpp == 8 && fp) {
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    floats[x][y] = (float) DataTools.bytesToDouble(
+                        b, x * 8 + y * 8 * width, 8, little);
+                }
+            }
+            return floats;
+        }
+        else if (bpp == 8) {
+            long minValue = 0;
+            if (unsigned)
+                minValue = Long.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    floats[x][y] = (float) (DataTools.bytesToLong(
+                        b, x * 8 + y * 8 * width, 8, little) - minValue);
+                }
+            }
+            return floats;
+        }
+        return null;
+    }
+
+    @Override
+    public double[][] loadPlane(Integer planeIndex) throws Exception
+    {
+        int channel = 0;
+        int timepoint = 0;
+        int zPlane = 0;
+        int series = 0;
+        ImageReader reader = this.getReaderByPlane(planeIndex);
+        reader.setSeries(series);
+        boolean fp = false;
+        boolean unsigned = false;
+        if (reader.getPixelType() == loci.formats.FormatTools.FLOAT ||
+            reader.getPixelType() == loci.formats.FormatTools.DOUBLE)
+        {
+            fp = true;
+        }
+        if (reader.getPixelType() == loci.formats.FormatTools.UINT8 ||
+            reader.getPixelType() == loci.formats.FormatTools.UINT16 ||
+            reader.getPixelType() == loci.formats.FormatTools.UINT32)
+        {
+            unsigned = true;
+        }
+        byte[] plane = reader.openBytes(
+            reader.getIndex(zPlane, channel, timepoint));
+        double[][] planeDouble = this.toDoubleArray(
+                plane, (int) (0.125 * reader.getBitsPerPixel()),
+                fp, reader.isLittleEndian(), unsigned,
+                this.sizeX, this.sizeY);
+        if (planeDouble == null) {
+            throw new Exception("We got no pixels.");
+        }
+        return planeDouble;
+    }
+
+    @Override
+    public double[][] loadPlane(
+        int series, int channel, int timepoint, int zPlane) throws Exception
+    {
+        ImageReader reader = this.readers.get(0);
+        reader.setSeries(series);
+        boolean fp = false;
+        boolean unsigned = false;
+        if (reader.getPixelType() == loci.formats.FormatTools.FLOAT ||
+            reader.getPixelType() == loci.formats.FormatTools.DOUBLE)
+        {
+            fp = true;
+        }
+        if (reader.getPixelType() == loci.formats.FormatTools.UINT8 ||
+            reader.getPixelType() == loci.formats.FormatTools.UINT16 ||
+            reader.getPixelType() == loci.formats.FormatTools.UINT32)
+        {
+            unsigned = true;
+        }
+        byte[] plane = reader.openBytes(
+            reader.getIndex(zPlane, channel, timepoint));
+        double[][] planeDouble = this.toDoubleArray(
+                plane, (int) (0.125 * reader.getBitsPerPixel()),
+                fp, reader.isLittleEndian(), unsigned,
+                this.sizeX, this.sizeY);
+        if (planeDouble == null) {
+            throw new Exception("We got no pixels.");
+        }
+        return planeDouble;
     }
 }
