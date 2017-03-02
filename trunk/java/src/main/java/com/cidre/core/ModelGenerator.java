@@ -8,6 +8,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cidre.input.BfImageWriter;
+
+import loci.formats.FormatTools;
+
 public class ModelGenerator {
 
     /**
@@ -45,8 +49,8 @@ public class ModelGenerator {
             this.options.maxLbgfsIterations = 500;
         }
         if (this.options.lambdaVreg == null) {
-            this.options.lambdaVreg = this.getLambdaVfromN(
-                this.options.numImagesProvided);
+            this.options.lambdaVreg = 12.0; //this.getLambdaVfromN(
+                //this.options.numImagesProvided);
         }
 
         //get dimensions of the provided data stack, S
@@ -63,7 +67,7 @@ public class ModelGenerator {
                 }
             }
         }
-
+        log.info("StackMin: {}", stackMin);
         double lambdaVreg = Math.pow(10, options.lambdaVreg);
         double lambdaZero = Math.pow(10, options.lambdaZero);
         // initial guesses for the correction surfaces
@@ -73,6 +77,28 @@ public class ModelGenerator {
         Arrays.fill(b0,  0.0);
 
         this.zLimitsResult = this.getZLimits(this.options, stackMin);
+        
+        log.info(
+           "Generating model with paramters\n" +
+           "lambdaVreg:         {}\n" +
+           "lambdaZero:         {}\n" +
+           "maxLbgfsIterations: {}\n" +
+           "zLimits:            [{} {}]\n" +
+           "imageSize:          [{}, {}]\n" +
+           "numImagesProvided:  {}\n" +
+           "bitDepth:           {}\n" +
+           "correctionMode:     {}\n" +
+           "targetNumPixels:    {}\n" +
+           "workingSize:        [{}, {}]\n" +
+           "numberOfQuantiles:  {}\n",
+           this.options.lambdaVreg, this.options.lambdaZero,
+           this.options.maxLbgfsIterations,
+           this.options.zLimits[0], this.options.zLimits[1],
+           this.options.imageSize.width, this.options.imageSize.height,
+           this.options.numImagesProvided, this.options.bitDepth,
+           this.options.correctionMode, this.options.targetNumPixels,
+           this.options.workingSize.width, this.options.workingSize.height,
+           this.options.numberOfQuantiles);
 
         log.info("Estimating Q");
         // get an estimate of Q, the underlying intensity distribution
@@ -286,7 +312,7 @@ public class ModelGenerator {
                 for (int z = 0; z < depth; z++) {
                     doubleValues[z] = imageStack.get(z)[x][y];
                 }
-                meanSurf[x][y] = this.mean(doubleValues);
+                meanSurf[x][y] = CidreMath.mean(doubleValues);
             }
         }
 
@@ -333,18 +359,21 @@ public class ModelGenerator {
             for (i = 0; i < mLength; i++) {
                 doubleValues[i] = doubleArray[cList[i]][rList[i]];
             }
-            Q[z] = mean(doubleValues);
+            Q[z] = CidreMath.mean(doubleValues);
+        }
+        log.info("Q mean value: {}", CidreMath.mean(Q));
+        String fileName = "/Users/emil/Documents/Data/HMS/output/details/Q.tif";
+        BfImageWriter writer = new BfImageWriter(
+                fileName, depth, 1,
+                FormatTools.getPixelTypeString(FormatTools.DOUBLE));
+        try {
+            writer.initialise();
+            writer.write(Q, 0);
+            writer.close();
+        } catch (Exception ex) {
+            log.error("Couldn't save Q");
         }
         return Q;
-    }
-
-    private double mean(double[] a) {
-        int i;
-        double sum = 0;
-        for (i = 0; i < a.length; i++) {
-            sum += a[i];
-        }
-        return sum / a.length;
     }
 
     private MinFuncResult minFunc(
@@ -887,7 +916,7 @@ public class ModelGenerator {
             G[pG++] = G_B[i];
         G[pG++] = G_ZX;
         G[pG++] = G_ZY;
-        log.info("Term str = {}; zx,zy = ({}, {}); E = {}",
+        log.debug("Term str = {}; zx,zy = ({}, {}); E = {}",
                   term_str, zx, zy, E);
         ObjectiveResult result = new ObjectiveResult();
         result.E = E;
@@ -1478,7 +1507,7 @@ public class ModelGenerator {
                 se[c * height + r] = Math.sqrt(sum_residuals2 / (Z-2));
             }
         }
-        return mean(se);
+        return CidreMath.mean(se);
     }
 
     private double[] imresize_bilinear(

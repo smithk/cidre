@@ -1,6 +1,8 @@
 package com.cidre;
 
 
+import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -89,7 +91,7 @@ public class Main {
         }
         Options options = new Options();
         List<Integer> series = new ArrayList<Integer>();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 221; i++) {
             series.add(i);
         }
         BfImageLoader image_loader = new BfImageLoader(
@@ -100,10 +102,54 @@ public class Main {
             log.error(e.toString());
             e.printStackTrace();
         }
-        ModelGenerator model = new ModelGenerator(image_loader.getOptions());
+        options = image_loader.getOptions();
+        options.zLimits[0] = 256.0;
+        options.zLimits[1] = 379.0;
+        options.numberOfQuantiles = 221;
+        ModelGenerator model = new ModelGenerator(options);
         ModelDescriptor descriptor = model.generate(image_loader.getStack());
+        ServiceFactory factory = new ServiceFactory();
+        OMEXMLService service = factory.getInstance(OMEXMLService.class);
+        IMetadata meta = service.createOMEXMLMetadata();
+        int width = image_loader.getWidth();
+        int height = image_loader.getHeight();
+        log.info("Write image size [{}, {}]", width, height);
+        String imageName = output + File.separator + "File_";
+        String fileName;
+        MetadataTools.populateMetadata(
+            meta, 0, null, false, "XYZCT",
+            FormatTools.getPixelTypeString(FormatTools.DOUBLE),
+            width, height,
+            1, 1, 1, 1);
+        //meta.setPixelsBigEndian(false, 0);
+        TiffWriter writera = new TiffWriter();
+        writera.setMetadataRetrieve(meta);
+        fileName = imageName + "model_v_before" + ".tif";
+        writera.setId(fileName);
+        ByteBuffer buffer1 = ByteBuffer.allocate(8 * width * height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                buffer1.putDouble(descriptor.v[x * height + y]);
+            }
+        }
+        writera.saveBytes(0, buffer1.array());
+        writera.close();
+        TiffWriter writerb = new TiffWriter();
+        writerb.setMetadataRetrieve(meta);
+        fileName = imageName + "model_z_before" + ".tif";
+        writerb.setId(fileName);
+        ByteBuffer buffer2 = ByteBuffer.allocate(8 * width * height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                buffer2.putDouble(descriptor.z[x * height + y]);
+            }
+        }
+        writerb.saveBytes(0, buffer2.array());
+        writerb.close();
+        if (true)
+            return;
         ImageCorrection corrector = new ImageCorrection(
-                descriptor, Options.CorrectionMode.ZERO_LIGHT_PRESERVED,
+                descriptor, Options.CorrectionMode.DYNAMIC_RANGE_CORRECTED,
                 this.output, image_loader);
         log.info("Image size: {}}", descriptor.imageSize);
         log.info("Image size small: {}", descriptor.imageSize_small);
@@ -112,24 +158,26 @@ public class Main {
         int channel = 0;
         int zPlane = 0;
         int timepoint = 0;
-        String imageName = output + '/';
-        String fileName;
-        ServiceFactory factory = new ServiceFactory();
-        OMEXMLService service = factory.getInstance(OMEXMLService.class);
-        IMetadata meta = service.createOMEXMLMetadata();
         MetadataTools.populateMetadata(
-            meta, 0, null, false, "XYZCT",
-            FormatTools.getPixelTypeString(image_loader.getPixelType()),
-            image_loader.getTileSizeX(), image_loader.getTileSizeY(),
-            1, 1, 1, 1);
-        meta.setPixelsBigEndian(false, 0);
-        for (int i = 0; i < 100; i++) {
+                meta, 0, null, false, "XYZCT",
+                FormatTools.getPixelTypeString(FormatTools.FLOAT),
+                width, height,
+                1, 1, 1, 1);
+        for (int i = 0; i < 221; i++) {
             pixels = image_loader.loadPlane(i, channel, timepoint, zPlane);
             pixelsFloat = corrector.correctPlane(pixels);
-            TiffWriter writer = new TiffWriter();
             fileName = imageName + String.format("%03d", i) + ".tif";
+            log.info("Saving {}", fileName);
+            TiffWriter writer = new TiffWriter();
+            writer.setMetadataRetrieve(meta);
             writer.setId(fileName);
-            writer.saveBytes(0, pixelsFloat);
+            ByteBuffer buffer = ByteBuffer.allocate(4 * width * height);
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    buffer.putFloat(pixelsFloat[x][y]);
+                }
+            }
+            writer.saveBytes(0, buffer.array());
             writer.close();
         }
         

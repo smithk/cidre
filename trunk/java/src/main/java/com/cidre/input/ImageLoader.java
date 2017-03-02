@@ -18,9 +18,14 @@ import com.cidre.core.Options;
 public abstract class ImageLoader {
 
     protected double maxI;
+
     protected List<double[][]> S;
+
     protected String source;
+
     protected Options options;
+
+    protected int stackMin;
 
     private static final Logger log =
         LoggerFactory.getLogger(ImageLoader.class);
@@ -38,6 +43,10 @@ public abstract class ImageLoader {
 
     public abstract double[][] loadPlane(
         int series, int channel, int timepoint, int zPlane) throws Exception;
+
+    public abstract int getWidth();
+
+    public abstract int getHeight();
 
     public abstract int getNumberOfImages();
 
@@ -110,10 +119,10 @@ public abstract class ImageLoader {
         double[] u = new double[newHeight];
         int[] left = new int[newHeight];
         for (int j = 0; j < newHeight; j++) {
-            u[j] = (j+1) / hScale + 0.5 * (1.0 - 1.0 / hScale);
+            u[j] = (j + 1.0) / hScale + 0.5 * (1.0 - 1.0 / hScale);
             left[j] = (int) Math.floor(u[j] - kernel_width / 2.0);
         }
-        int P = (int ) Math.ceil(kernel_width) + 2;
+        int P = (int) Math.ceil(kernel_width) + 2;
         int hIndices[][] = new int[P][newHeight];
         double hWeights[][] = new double[P][newHeight];
         for (int p = 0; p < P; p++) {
@@ -252,7 +261,7 @@ public abstract class ImageLoader {
                 this.maxI = Math.max(this.maxI, (int) image[x][y]);
             }
         }
-        log.info("Max {}", maxI);
+        log.debug("Max {}", maxI);
     }
 
     protected void preprocessData() {
@@ -330,10 +339,12 @@ public abstract class ImageLoader {
             for (int x = 0; x < this.options.workingSize.width; x++) {
                 for (int y = 0; y < this.options.workingSize.height; y++) {
                     value = doubleArray[x][y];
-                    if (value < 0) {
-                        log.debug("[{},{}] Value {}, int value {}",
+                    if (value < 0 || value >= options.bitDepth - 1) {
+                        log.info("[{},{}] Value {}, int value {}",
                                   x, y, value, Math.round(value));
+                        continue;
                     }
+                    //log.info("Hist value: {}", (int) Math.round(value));
                     hist[(int) Math.round(value)]++;
                 }
             }
@@ -536,7 +547,7 @@ public abstract class ImageLoader {
         double[][] doubleArray, int origWidth, int origHeight, double scale)
     {
         // Height
-        int newHeight = (int)Math.round(origHeight * scale);
+        int newHeight = (int) Math.round(origHeight * scale);
         double kernel_width = 4.0;
         if (scale < 1.0)
             kernel_width /= scale;

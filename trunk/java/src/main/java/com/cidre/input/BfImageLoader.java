@@ -17,9 +17,13 @@ import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
 import loci.common.DataTools;
 import loci.formats.FormatException;
+import loci.formats.FormatTools;
 import loci.formats.ImageReader;
+import loci.formats.MetadataTools;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataOptions;
+import loci.formats.meta.IMetadata;
+import loci.formats.out.TiffWriter;
 import loci.formats.services.OMEXMLService;
 
 public class BfImageLoader extends ImageLoader {
@@ -234,12 +238,13 @@ public class BfImageLoader extends ImageLoader {
                 return doubles;
             }
             else if (bpp == 2) {
-                short minValue = 0;
-                if (unsigned)
-                    minValue = Short.MIN_VALUE;
+                double minValue = 0;
+                if (!unsigned)
+                    minValue = (double) (Short.MIN_VALUE);
+                log.debug("Converting to double array with min={}", minValue);
                 for (int y = 0; y < height; y++) {
                     for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) (DataTools.bytesToShort(
+                        doubles[x][y] = (double) (DataTools.bytesToInt(
                             b, x * 2 + y * 2 * width, 2, little) - minValue);
                     }
                 }
@@ -318,6 +323,27 @@ public class BfImageLoader extends ImageLoader {
         {
             unsigned = true;
         }
+        String testDir = "/Users/emil/Documents/Data/HMS/output/resized/file_";
+        String testDir2 = "/Users/emil/Documents/Data/HMS/output/double/file_";
+        String fileName = "";
+        ServiceFactory factory = new ServiceFactory();
+        OMEXMLService service = factory.getInstance(OMEXMLService.class);
+        IMetadata meta = service.createOMEXMLMetadata();
+        IMetadata meta2 = service.createOMEXMLMetadata();
+        int width = this.options.workingSize.width;
+        int height = this.options.workingSize.height;
+        MetadataTools.populateMetadata(
+                meta, 0, null, false, "XYZCT",
+                FormatTools.getPixelTypeString(FormatTools.DOUBLE),
+                width, height,
+                1, 1, 1, 1);
+        MetadataTools.populateMetadata(
+                meta2, 0, null, false, "XYZCT",
+                FormatTools.getPixelTypeString(FormatTools.DOUBLE),
+                this.sizeX, this.sizeY,
+                1, 1, 1, 1);
+        TiffWriter writer;
+        TiffWriter writer2;
         for (int s : this.series) {
             reader.setSeries(s);
             for (int c : this.channels) {
@@ -332,10 +358,40 @@ public class BfImageLoader extends ImageLoader {
                        if (planeDouble == null) {
                            throw new Exception("We got no pixels.");
                        }
+                       /*
+                       fileName = testDir2 + String.format("%03d", s) + ".tif";
+                       writer2 = new TiffWriter();
+                       writer2.setMetadataRetrieve(meta2);
+                       writer2.setId(fileName);
+                       ByteBuffer buffer2 = ByteBuffer.allocate(
+                           8 * this.sizeX * this.sizeY);
+                       for (int y = 0; y < this.sizeY; y++) {
+                           for (int x = 0; x < this.sizeX; x++) {
+                               buffer2.putDouble(planeDouble[x][y]);
+                           }
+                       }
+                       writer2.saveBytes(0, buffer2.array());
+                       writer2.close();
+                       */
                        double[][] planeRescaled = this.imresize(
                            planeDouble, this.sizeX, this.sizeY,
                            this.options.workingSize.width,
                            this.options.workingSize.height);
+                       /*
+                       fileName = testDir + String.format("%03d", s) + ".tif";
+                       writer = new TiffWriter();
+                       writer.setMetadataRetrieve(meta);
+                       writer.setId(fileName);
+                       ByteBuffer buffer = ByteBuffer.allocate(
+                           8 * width * height);
+                       for (int y = 0; y < height; y++) {
+                           for (int x = 0; x < width; x++) {
+                               buffer.putDouble(planeRescaled[x][y]);
+                           }
+                       }
+                       writer.saveBytes(0, buffer.array());
+                       writer.close();
+                       */
                        this.findMax(planeRescaled);
                        this.S.add(planeRescaled);
                     }
@@ -470,14 +526,14 @@ public class BfImageLoader extends ImageLoader {
         reader.setSeries(series);
         boolean fp = false;
         boolean unsigned = false;
-        if (reader.getPixelType() == loci.formats.FormatTools.FLOAT ||
-            reader.getPixelType() == loci.formats.FormatTools.DOUBLE)
+        if (reader.getPixelType() == FormatTools.FLOAT ||
+            reader.getPixelType() == FormatTools.DOUBLE)
         {
             fp = true;
         }
-        if (reader.getPixelType() == loci.formats.FormatTools.UINT8 ||
-            reader.getPixelType() == loci.formats.FormatTools.UINT16 ||
-            reader.getPixelType() == loci.formats.FormatTools.UINT32)
+        if (reader.getPixelType() == FormatTools.UINT8 ||
+            reader.getPixelType() == FormatTools.UINT16 ||
+            reader.getPixelType() == FormatTools.UINT32)
         {
             unsigned = true;
         }
@@ -491,5 +547,15 @@ public class BfImageLoader extends ImageLoader {
             throw new Exception("We got no pixels.");
         }
         return planeDouble;
+    }
+
+    @Override
+    public int getWidth() {
+        return this.sizeX;
+    }
+
+    @Override
+    public int getHeight() {
+        return this.sizeY;
     }
 }

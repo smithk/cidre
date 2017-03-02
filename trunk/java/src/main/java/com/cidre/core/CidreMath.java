@@ -10,4 +10,5 @@ public class CidreMath {
         }
         return sum / a.length;
     }
+
 }
