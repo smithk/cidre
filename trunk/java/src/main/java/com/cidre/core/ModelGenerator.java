@@ -640,8 +640,8 @@ public class ModelGenerator {
         // derivative of fit term wrt b
         double[] deriv_b_fit = new double[width * height];
 
-        double v;
-        double b;
+        double v = 0;
+        double b = 0;
         double E_fit = 0;
         double[] G_V_fit = new double[width * height];
         double[] G_B_fit = new double[width * height];
@@ -700,7 +700,7 @@ public class ModelGenerator {
         // normalize the contribution from fitting energy term by the number
         // of data points in imageStack
         // (so our balancing of the energy terms is invariant)
-        double data_size_factor = N_stan / depth;
+        double data_size_factor = (double) N_stan / (double) depth;
         I = 0;
         for (int xc = 0; xc < width; xc++) { 
             for (int y = 0; y < height; y++) {
