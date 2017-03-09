@@ -694,10 +694,13 @@ public class ModelGenerator {
                 I++;
             }
         }
+        log.info("mres: {}, energy_fit: {}, deriv_v_fit: {}, deriv_b_fit: {}",
+        		 CidreMath.mean(mestimator_response), CidreMath.mean(energy_fit),
+        		 CidreMath.mean(deriv_v_fit), CidreMath.mean(deriv_b_fit));
         // normalize the contribution from fitting energy term by the number
         // of data points in imageStack
         // (so our balancing of the energy terms is invariant)
-        int data_size_factor = N_stan / depth;
+        double data_size_factor = N_stan / depth;
         I = 0;
         for (int xc = 0; xc < width; xc++) { 
             for (int y = 0; y < height; y++) {
