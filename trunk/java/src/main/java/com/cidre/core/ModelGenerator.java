@@ -74,7 +74,7 @@ public class ModelGenerator {
         double[] v0 = new double[width * height];
         double[] b0 = new double[width * height];
         Arrays.fill(v0, 1.0);
-        Arrays.fill(b0,  0.0);
+        Arrays.fill(b0, 1.0);
 
         this.zLimitsResult = this.getZLimits(this.options, stackMin);
         
