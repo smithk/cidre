@@ -1143,7 +1143,7 @@ public class ModelGenerator {
         for (int j = 0; j < x.length; j++)
             x2[j] = x[j] + t * d[j];
         ObjectiveResult cdrObjectiveResult = this.cdr_objective(
-            imageStack, x, cauchy_w, pivotShiftX,
+            imageStack, x2, cauchy_w, pivotShiftX,
             pivotShiftY, method, Q, TERM, LAMBDA_VREG, LAMBDA_ZERO);
         double f_new = cdrObjectiveResult.E;
         double[] g_new = cdrObjectiveResult.G;
