@@ -10,6 +10,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cidre.core.CidreMath;
 import com.cidre.core.Options;
 
 import loci.common.services.DependencyException;
@@ -101,7 +102,7 @@ public class BfImageLoader extends ImageLoader {
         this.readers.clear();
         for (String fileName : this.options.fileNames) {
             ImageReader reader = new ImageReader();
-            this.initializeReader(reader);
+            BfImageLoader.initializeReader(reader);
             reader.setId(fileName);
             if (!this.checkReaderDimensions(reader)) {
                 return false;
@@ -119,7 +120,7 @@ public class BfImageLoader extends ImageLoader {
         this.maxT = Collections.max(this.timepoints);
         this.maxZ = Collections.max(this.zSections);
         ImageReader reader = new ImageReader();
-        this.initializeReader(reader);
+        BfImageLoader.initializeReader(reader);
         reader.setId(this.options.fileNames.get(0));
         reader.setSeries(this.series.get(0));
         this.sizeS = reader.getSeriesCount();
@@ -149,7 +150,7 @@ public class BfImageLoader extends ImageLoader {
         }
     }
 
-    private void initializeReader(ImageReader reader)
+    public static void initializeReader(ImageReader reader)
             throws DependencyException, ServiceException
     {
         reader.setOriginalMetadataPopulated(true);
@@ -220,7 +221,7 @@ public class BfImageLoader extends ImageLoader {
         return noError;
     }
 
-    public double[][] toDoubleArray(
+    public static double[][] toDoubleArray(
             byte[] b, int bpp, boolean fp, boolean little, boolean unsigned,
             int width, int height)
           {
@@ -351,7 +352,7 @@ public class BfImageLoader extends ImageLoader {
                     for (int t : this.timepoints) {
                        byte[] plane = reader.openBytes(
                            reader.getIndex(z, c, t));
-                       double[][] planeDouble = this.toDoubleArray(
+                       double[][] planeDouble = BfImageLoader.toDoubleArray(
                            plane, (int) (0.125 * reader.getBitsPerPixel()),
                            fp, reader.isLittleEndian(), unsigned,
                            this.sizeX, this.sizeY);
@@ -508,7 +509,7 @@ public class BfImageLoader extends ImageLoader {
         }
         byte[] plane = reader.openBytes(
             reader.getIndex(zPlane, channel, timepoint));
-        double[][] planeDouble = this.toDoubleArray(
+        double[][] planeDouble = BfImageLoader.toDoubleArray(
                 plane, (int) (0.125 * reader.getBitsPerPixel()),
                 fp, reader.isLittleEndian(), unsigned,
                 this.sizeX, this.sizeY);
@@ -539,7 +540,7 @@ public class BfImageLoader extends ImageLoader {
         }
         byte[] plane = reader.openBytes(
             reader.getIndex(zPlane, channel, timepoint));
-        double[][] planeDouble = this.toDoubleArray(
+        double[][] planeDouble = BfImageLoader.toDoubleArray(
                 plane, (int) (0.125 * reader.getBitsPerPixel()),
                 fp, reader.isLittleEndian(), unsigned,
                 this.sizeX, this.sizeY);
