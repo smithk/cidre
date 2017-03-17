@@ -1082,7 +1082,7 @@ public class ModelGenerator {
         int[] ind;
         if (lbfgs_start == 0)
         {
-            ind = new int[lbfgs_end];
+            ind = new int[lbfgs_end + 1];
             for (int j = 0; j < ind.length; j++)
                 ind[j] = j;
             nCor = lbfgs_end-lbfgs_start + 1;
