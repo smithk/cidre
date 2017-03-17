@@ -55,12 +55,15 @@ public class ImageCorrection {
 
     private float[][] correctPlane(double[][] pixelData, int width, int height)
     {
-        
+        double[][] minImage = this.imageLoader.getMinImage();
+        double minImageMean = CidreMath.mean(minImage);
         double enumerator, denominator;
         float[][] floatArray = new float[width][height];
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                enumerator = pixelData[x][y] - model.z[x * height + y];
+                // enumerator = pixelData[x][y] - model.z[x * height + y];
+                enumerator =
+                    pixelData[x][y] - (minImage[x][y] - minImageMean + mean_z);
                 denominator = model.v[x * height + y];
                 switch(this.correctionMode)
                 {
