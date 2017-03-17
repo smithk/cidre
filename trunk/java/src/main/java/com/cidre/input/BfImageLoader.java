@@ -345,6 +345,9 @@ public class BfImageLoader extends ImageLoader {
                 1, 1, 1, 1);
         TiffWriter writer;
         TiffWriter writer2;
+        double min, max;
+        double[][] minImage = new double[this.sizeX][this.sizeY];
+        int planeCounter = 0;
         for (int s : this.series) {
             reader.setSeries(s);
             for (int c : this.channels) {
@@ -393,12 +396,25 @@ public class BfImageLoader extends ImageLoader {
                        writer.saveBytes(0, buffer.array());
                        writer.close();
                        */
-                       this.findMax(planeRescaled);
+                       max = this.findMax(planeRescaled);
+                       min = this.findMin(planeRescaled);
+                       this.maxI = Math.max(this.maxI, max);
+                       //log.info("Series {}, Min/Max: [{}, {}]", s, min, max);
                        this.S.add(planeRescaled);
+                       if (planeCounter == 0) {
+                           minImage = planeDouble.clone();
+                       } else {
+                           minImage = CidreMath.min(planeDouble, minImage);
+                       }
+                       planeCounter++;
                     }
                 }
             }
         }
+        max = CidreMath.max(minImage);
+        min = CidreMath.min(minImage);
+        log.info("Mean: {}, max: {}, min: {}", CidreMath.mean(minImage), max, min);
+        this.minImage = minImage.clone();
     }
 
     private ImageReader getReaderByPlane(Integer planeIndex) {
