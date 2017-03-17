@@ -1054,7 +1054,7 @@ public class ModelGenerator {
             }
             Hdiag = ys/yy;
         } else {
-            skipped = false;
+            skipped = true;
         }
         LbfgsAddResult lbfgsAddResult = new LbfgsAddResult();
         lbfgsAddResult.S = S;
