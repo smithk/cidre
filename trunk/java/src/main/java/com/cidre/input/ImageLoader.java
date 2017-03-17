@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import com.cidre.core.CidreMath;
 import com.cidre.core.Options;
 
+import loci.formats.FormatTools;
+
 
 public abstract class ImageLoader {
 
@@ -27,11 +29,13 @@ public abstract class ImageLoader {
 
     protected int stackMin;
 
+    protected double[][] minImage;
+
     private static final Logger log =
         LoggerFactory.getLogger(ImageLoader.class);
 
     public ImageLoader(Options options, String source) {
-        this.maxI = 0;
+        this.maxI = 0.0;
         this.S = new ArrayList<double[][]>();
         this.options = options;
         this.source = source;
@@ -255,13 +259,24 @@ public abstract class ImageLoader {
             (int) Math.round(heightOriginal * scaleWorking));
     }
 
-    protected void findMax(double[][] image) {
+    protected double findMax(double[][] image) {
+        double max = Double.MIN_VALUE;
         for (int x = 0; x < this.options.workingSize.width; x++) {
             for (int y = 0; y < this.options.workingSize.height; y++) {
-                this.maxI = Math.max(this.maxI, (int) image[x][y]);
+                max = Math.max(max, image[x][y]);
             }
         }
-        log.debug("Max {}", maxI);
+        return max;
+    }
+
+    protected double findMin(double[][] image) {
+        double min = Double.MAX_VALUE;
+        for (int x = 0; x < this.options.workingSize.width; x++) {
+            for (int y = 0; y < this.options.workingSize.height; y++) {
+                min = Math.min(min, image[x][y]);
+            }
+        }
+        return min;
     }
 
     protected void preprocessData() {
@@ -660,4 +675,7 @@ public abstract class ImageLoader {
         return doubleArrayW;
     }
 
+    public double[][] getMinImage() {
+        return this.minImage;
+    }
 }
