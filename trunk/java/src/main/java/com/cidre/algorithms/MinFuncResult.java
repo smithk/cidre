@@ -1,4 +1,4 @@
-package com.cidre.core;
+package com.cidre.algorithms;
 
 public class MinFuncResult {
     public double[] x;

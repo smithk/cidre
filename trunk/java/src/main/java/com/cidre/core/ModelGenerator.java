@@ -8,6 +8,13 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cidre.algorithms.CidreMath;
+import com.cidre.algorithms.LbfgsAddResult;
+import com.cidre.algorithms.MinFuncOptions;
+import com.cidre.algorithms.MinFuncResult;
+import com.cidre.algorithms.ObjectiveResult;
+import com.cidre.algorithms.WolfeLineSearchResult;
+import com.cidre.algorithms.ZLimitsResult;
 import com.cidre.io.BfImageWriter;
 
 import loci.formats.FormatTools;

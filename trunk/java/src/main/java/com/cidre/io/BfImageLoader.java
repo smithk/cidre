@@ -10,7 +10,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cidre.core.CidreMath;
+import com.cidre.algorithms.CidreMath;
 import com.cidre.core.Options;
 
 import loci.common.services.DependencyException;
