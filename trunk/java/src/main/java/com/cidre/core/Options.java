@@ -28,4 +28,5 @@ public class Options
     public int targetNumPixels = 9400;
     public Dimension workingSize;
     public int numberOfQuantiles = 200;
+
 }

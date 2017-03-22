@@ -1,4 +1,4 @@
-package com.cidre.input;
+package com.cidre.io;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

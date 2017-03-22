@@ -1,4 +1,4 @@
-package com.cidre.input;
+package com.cidre.io;
 
 import java.awt.Dimension;
 import java.io.File;

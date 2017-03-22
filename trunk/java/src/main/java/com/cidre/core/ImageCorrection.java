@@ -5,7 +5,7 @@ import java.io.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cidre.input.ImageLoader;
+import com.cidre.io.ImageLoader;
 
 
 public class ImageCorrection {

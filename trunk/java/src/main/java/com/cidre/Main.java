@@ -6,20 +6,18 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cidre.core.CidreMath;
 import com.cidre.core.ImageCorrection;
 import com.cidre.core.ModelDescriptor;
 import com.cidre.core.ModelGenerator;
 import com.cidre.core.Options;
-import com.cidre.input.BfImageLoader;
-import com.cidre.input.BfImageWriter;
+import com.cidre.io.BfImageLoader;
+import com.cidre.io.BfImageWriter;
 
 import ch.qos.logback.classic.Level;
 import loci.common.services.ServiceFactory;
