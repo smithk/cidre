@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.cidre.algorithms.CidreMath;
 import com.cidre.core.Options;
+import com.cidre.preprocessing.CidrePreprocess;
 
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
@@ -377,7 +378,7 @@ public class BfImageLoader extends ImageLoader {
                        writer2.saveBytes(0, buffer2.array());
                        writer2.close();
                        */
-                       double[][] planeRescaled = this.imresize(
+                       double[][] planeRescaled = CidrePreprocess.imresize(
                            planeDouble, this.sizeX, this.sizeY,
                            this.options.workingSize.width,
                            this.options.workingSize.height);
