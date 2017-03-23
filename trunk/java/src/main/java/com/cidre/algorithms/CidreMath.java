@@ -2,6 +2,7 @@ package com.cidre.algorithms;
 
 import java.util.List;
 
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,5 +101,27 @@ public class CidreMath {
             }
         }
         return max;
+    }
+
+    public static double[] zLimitsFromPercentiles(double[] values) {
+        double[] zLimits = new double[2];
+        Percentile p = new Percentile();
+        p.setData(values);
+        zLimits[0] = p.evaluate(0.1);
+        zLimits[1] = p.evaluate(99.9);
+        log.info("zLimits {}, {}", zLimits[0], zLimits[1]);
+        return zLimits;
+    }
+
+    public static double[] zLimitsFromPercentiles(double[][] values) {
+        int height = values.length;
+        int width = values[0].length;
+        double[] valuesTemp = new double[width * height];
+        for (int i = 0; i < values.length; i++) {
+            for (int j = 0; j < values[j].length; j++) {
+                valuesTemp[j + i * width] = values[i][j];
+            }
+        }
+        return CidreMath.zLimitsFromPercentiles(valuesTemp);
     }
 }
