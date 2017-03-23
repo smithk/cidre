@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,6 +204,24 @@ public class Main {
             options.workingSize, options.numberOfQuantiles);
     }
 
+    public double[] computeZLimites(double[][] minImage) {
+        int height = minImage.length;
+        int width = minImage[0].length;
+        double[] values = new double[width * height];
+        for (int i = 0; i < minImage.length; i++) {
+            for (int j = 0; j < minImage[j].length; j++) {
+                values[j + i * width] = minImage[i][j];
+            }
+        }
+        Percentile p = new Percentile();
+        p.setData(values);
+        double[] zLimits = new double[2];
+        zLimits[0] = p.evaluate(0.1);
+        zLimits[1] = p.evaluate(99.9);
+        log.info("Percentiles {}, {}", zLimits[0], zLimits[1]);
+        return zLimits;
+    }
+
     public void correctImages() throws Exception {
      // Setup logger
         ch.qos.logback.classic.Logger root =
@@ -231,6 +250,11 @@ public class Main {
             log.error(e.toString());
             e.printStackTrace();
         }
+        double[] zLimits = this.computeZLimites(image_loader.getMinImage());
+        options.zLimits[0] = zLimits[0];
+        options.zLimits[1] = zLimits[1];
+        if (true)
+            return;
         this.printOptions(options);
         List<double[][]> stack = image_loader.getStack();
         String imageName = output + File.separator + "File_";
