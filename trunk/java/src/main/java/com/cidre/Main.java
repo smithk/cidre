@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +42,9 @@ public class Main {
     private String output;
 
     @Arg
+    private Boolean correctUsingSeries;
+
+    @Arg
     private ArrayList<Integer> channels;
 
     @Arg
@@ -57,17 +59,24 @@ public class Main {
     public static void main(String[] args) throws Throwable {
         log.info("CIDRE started");
 
-    ArgumentParser parser =
+        ArgumentParser parser =
             ArgumentParsers.newArgumentParser("stitcher");
+        parser.description("Passing Folder or ");
         parser.addArgument("--input").nargs("*")
-            .help("Files to generate pyramid from");
-        parser.addArgument("--output").help("Output pyramid file name");
-        parser.addArgument("--tileSize")
-              .type(Integer.class)
-              .setDefault(1024)
-              .help("Set output pyramid tile size");
+            .help("Directory path, file path, list of file paths or "
+                    + "file path masks are valid inputs. The processing by "
+                    + "default will generate a model based on all the passed "
+                    + "files. Look at `correctUsingSeries` flag for more"
+                    + "details. ");
+        parser.addArgument("--output").help("Output directory");
         parser.addArgument("--channels").nargs("*").type(Integer.class)
-              .help("Select channels to write");
+              .help("Select channels to calculate "
+                      + "Illumination Correction for");
+        parser.addArgument("--correctUsingSeries")
+              .help("Images from different series, the same channel, will "
+                      + "be used to generate illumination correction model."
+                      + " Passing multiple files will result in computation"
+                      + " of model a model per file per channel.");
         parser.addArgument("--debug")
               .action(Arguments.storeTrue())
               .help("Set logging level to Debug");
@@ -206,7 +215,7 @@ public class Main {
     }
 
     public void correctImages() throws Exception {
-     // Setup logger
+        // Setup logger
         ch.qos.logback.classic.Logger root =
             (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(
                 Logger.ROOT_LOGGER_NAME);
@@ -215,8 +224,8 @@ public class Main {
         } else {
             root.setLevel(Level.INFO);
         }
-        String dir = output + File.separator +  "image_loader_output";
-        //this.testBuildModel(dir);
+        // String dir = output + File.separator +  "image_loader_output";
+        // this.testBuildModel(dir);
         Options options = new Options();
         List<Integer> series = new ArrayList<Integer>();
         for (int i = 0; i < 221; i++) {
