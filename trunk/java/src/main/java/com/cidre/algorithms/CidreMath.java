@@ -124,4 +124,15 @@ public class CidreMath {
         }
         return CidreMath.zLimitsFromPercentiles(valuesTemp);
     }
+
+    public static double cubic(double x) {
+        double absx = Math.abs(x);
+        double absx2 = absx * absx;
+        double absx3 = absx2 * absx;
+
+        return (1.5 * absx3 - 2.5 * absx2 + 1.0) *
+               (absx <= 1.0 ? 1.0 : 0.0) +
+               (-0.5 * absx3 + 2.5 * absx2 - 4.0 * absx + 2.0) *
+               ((1 < absx) && (absx <= 2) ? 1.0 : 0.0);
+    }
 }
