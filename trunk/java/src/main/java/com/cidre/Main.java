@@ -232,8 +232,6 @@ public class Main {
             series.add(i);
         }
 
-        // options.zLimits[0] = 256.0;
-        // options.zLimits[1] = 379.0;
         options.numberOfQuantiles = 221;
         BfImageLoader image_loader = new BfImageLoader(
             options, this.input.get(0), series, 0, 0);
