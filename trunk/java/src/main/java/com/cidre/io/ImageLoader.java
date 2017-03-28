@@ -112,10 +112,6 @@ public abstract class ImageLoader {
         }
     }
 
-    
-
-    
-
     // determines a working image size based on the original image size and
     // the desired number of pixels in the working image, N_desired
     protected Dimension determineWorkingSize(Dimension imageSize, int Ndesired)
