@@ -71,7 +71,7 @@ public abstract class ImageLoader {
             log.debug("Searching for files in {}", folder.toString());
             File[] listOfFiles = folder.listFiles(
                 new ImageNameFilter(fileName));
-            log.debug("Found {} files", listOfFiles.length);
+            log.info("Found {} files", listOfFiles.length);
             if (listOfFiles != null) {
                 log.debug("{}", listOfFiles.toString());
                 for (int i = 0; i < listOfFiles.length; i++) {
@@ -119,6 +119,10 @@ public abstract class ImageLoader {
         double scaleWorking = Math.sqrt(
             (double) Ndesired / (widthOriginal * heightOriginal));
 
+        log.info("Wokring scale: {}, working size [{}, {}]",
+                 scaleWorking,
+                 (int) Math.round(widthOriginal * scaleWorking),
+                 (int) Math.round(heightOriginal * scaleWorking));
         return new Dimension(
             (int) Math.round(widthOriginal * scaleWorking),
             (int) Math.round(heightOriginal * scaleWorking));
@@ -145,6 +149,7 @@ public abstract class ImageLoader {
     }
 
     protected void preprocessData() {
+        log.info("Preprocessing data");
         // determine if sufficient intensity
         // information is provided by measuring entropy
 
@@ -328,16 +333,20 @@ public abstract class ImageLoader {
         // the data. leave S as is.
         if (Z <= options.numberOfQuantiles)
         {
+            log.info("Returning cause, Z: {} <= # of Quantiles: {}",
+                     Z, options.numberOfQuantiles);
             return;
         }
         else
         {
+            log.info("Not returning cause, Z: {} > # of Quantiles: {}",
+                     Z, options.numberOfQuantiles);
             // find regionLimits, a set of indexes that breaks Z into
             // options.numberOfQuantiles evenly space pieces
             int Zmin = 0;
             int Zmax = Z;
             int Zdiff = Zmax - Zmin;
-            
+
             int[][] regionLimits = new int[options.numberOfQuantiles][2];
             for (int i = 0; i < options.numberOfQuantiles; i++) {
                 regionLimits[i][0] = Math.round(
