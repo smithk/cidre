@@ -15,9 +15,6 @@ import com.cidre.algorithms.CidreMath;
 import com.cidre.core.Options;
 import com.cidre.preprocessing.CidrePreprocess;
 
-import loci.formats.FormatTools;
-
-
 public abstract class ImageLoader {
 
     protected double maxI;
@@ -157,7 +154,7 @@ public abstract class ImageLoader {
         // compute the stack's entropy
         double entropy = CidrePreprocess.getEntropy(this.options, this.S);
         // resample the stack if the entropy is too high
-        scaleSpaceResampling(entropy);
+        this.scaleSpaceResampling(entropy);
 
         // sort the intensity values at every location in the image stack
         // at every pixel location (r,c), we sort all the recorded
@@ -181,13 +178,14 @@ public abstract class ImageLoader {
 
         // compress the stack: reduce the effective number
         // of images for efficiency
-        resizeStack(options);
+        this.resizeStack(options);
     }
 
     private void setBitDepth() {
-        // Sets options.bitDepth describing the provided images as 8-bit, 12-bit, or 
-        // 16-bit. If options.bitDepth is provided, it is used. Otherwise the bit 
-        //depth is estimated from the max observed intensity, maxI.
+        // Sets options.bitDepth describing the provided images as 8-bit,
+        // 12-bit, or  16-bit. If options.bitDepth is provided, it is used.
+        // Otherwise the bit depth is estimated from the max observed
+        // intensity, maxI.
         final int xy_2_8 = 256;
         final int xy_2_12 = 4096;
         final int xy_2_16 = 65536;
@@ -207,12 +205,13 @@ public abstract class ImageLoader {
     {
         log.info("Scaling space resampling");
         // uses scale space resampling to compensate for regions with little
-        // intensity information. if the entropy is very low, this indicates that
-        // some (or many) have regions little useful information. resampling from
-        // a scale space transform allows us to leverage information from
-        // neighboring locations. For example, in low confluency fluorescence images
-        // without a fluorescing medium, the background pixels contain nearly zero
-        // contribution from incident light and do not provide useful information.
+        // intensity information. if the entropy is very low, this indicates
+        // that some (or many) have regions little useful information.
+        // resampling from a scale space transform allows us to leverage
+        // information from neighboring locations. For example, in low
+        // confluency fluorescence images without a fluorescing medium,
+        // the background pixels contain nearly zero contribution from
+        // incident light and do not provide useful information.
 
         double l0 = 1;          // max lambda_vreg
         double l1 = 0;          // stable lambda_vreg
@@ -221,12 +220,14 @@ public abstract class ImageLoader {
         double b  = -1.948;     // parameters of a fitted exponential function
         double c  = 20;         // parameters of a fitted exponential function
 
-        // emprical estimate of the number of images necessary at the reported entropy level
+        // emprical estimate of the number of images necessary at the reported
+        // entropy level
         double N_required = a * Math.exp(b * entropy) + c;
 
         // alpha is a linear function from 1 (N=0) to 0 (N=N_required) and 0 
-        // (N > N_required). It informs us how strong the scale space resampling
-        // should be. alpha=1 means strong resampling, alpha=0 skips resampling
+        // (N > N_required). It informs us how strong the scale space
+        // resampling should be. alpha=1 means strong resampling,
+        // alpha=0 skips resampling
         double alpha;
 
         if (N < N_required) {
@@ -246,8 +247,8 @@ public abstract class ImageLoader {
         int Z1 = this.S.size();
 
         // scale space reduction of the stack into octaves. SCALE is a cell 
-        // containing the scale space reductions of the stack: {[R1xC1xZ1], [R1/2 x 
-        // C1/2 x Z1], [R1/4 x C1/4 x Z1], ...}
+        // containing the scale space reductions of the stack:
+        // {[R1xC1xZ1], [R1/2 x C1/2 x Z1], [R1/4 x C1/4 x Z1], ...}
         // cell containing the scale space reductions
         List<List<double[][]>> SCALE = new ArrayList<List<double[][]>>();
         int R = R1;                 // scale space reduced image height
@@ -272,15 +273,16 @@ public abstract class ImageLoader {
             C = SCALE.get(SCALE.size() - 1).get(0).length;
         }
 
-        // determine the max octave we should keep, max_i as directed by the scaling
-        // strength alpha. alpha = 0 keeps only the original size. alpha = 1 uses 
-        // all available octaves
+        // determine the max octave we should keep, max_i as directed by
+        // the scaling  strength alpha. alpha = 0 keeps only the original size.
+        // alpha = 1 uses all available octaves
         int max_possible_i = SCALE.size();
         alpha = Math.max(0, alpha); alpha = Math.min(1, alpha);
         int max_i = (int)Math.ceil(alpha * max_possible_i);
         max_i = Math.max(max_i, 1);
 
-        // join the octaves from the scale space reduction from i=1 until i=max_i. 
+        // join the octaves from the scale space reduction
+        // from i=1 until i=max_i.
         if (max_i > 1)
         {
             log.info(
@@ -312,9 +314,10 @@ public abstract class ImageLoader {
     {
         log.info("Resizing Stack");
         // in order keep CIDRE computationally tractable and to ease parameter 
-        // setting, we reduce the 3rd dimension of the sorted stack S to Z = 200. 
-        // Information is not discarded in the process, but several slices from the 
-        // stack are averaged into a single slice in the process.
+        // setting, we reduce the 3rd dimension of the sorted stack
+        // S to Z = 200. Information is not discarded in the process,
+        // but several slices from the stack are averaged into a single
+        // slice in the process.
 
         // get the original dimensions of S
         int C = this.options.workingSize.width;
@@ -344,8 +347,8 @@ public abstract class ImageLoader {
                     ((float) (i + 1) / options.numberOfQuantiles)) - 1;
             }
 
-            // compute the mean image of each region of S defined by regionLimits,
-            // and add the mean image to S2
+            // compute the mean image of each region of S defined by
+            // regionLimits, and add the mean image to S2
             List<double[][]> S2 = new ArrayList<double[][]>();
             for (int i = 0; i < options.numberOfQuantiles; i++) {
                 double[][] doubleArray = new double[C][R];
@@ -360,7 +363,8 @@ public abstract class ImageLoader {
                             int z = regionLimits[i][0];
                             z <= regionLimits[i][1]; z++)
                         {
-                            doubleValues[z - regionLimits[i][0]] = S.get(z)[x][y];
+                            doubleValues[z - regionLimits[i][0]] =
+                                    S.get(z)[x][y];
                         }
                         doubleArray[x][y] = CidreMath.mean(doubleValues);
                     }
