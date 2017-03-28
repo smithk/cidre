@@ -1,8 +1,6 @@
 package com.cidre.io;
 
 import java.awt.Dimension;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,14 +17,10 @@ import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
 import loci.common.DataTools;
-import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.ImageReader;
-import loci.formats.MetadataTools;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataOptions;
-import loci.formats.meta.IMetadata;
-import loci.formats.out.TiffWriter;
 import loci.formats.services.OMEXMLService;
 
 public class BfImageLoader extends ImageLoader {
