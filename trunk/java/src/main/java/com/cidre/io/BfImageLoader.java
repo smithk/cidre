@@ -30,13 +30,11 @@ public class BfImageLoader extends ImageLoader {
 
     // passed in
     private List<Integer> series;
-    private List<Integer> channels;
     private List<Integer> zSections;
     private List<Integer> timepoints;
 
     // derived from passed in
     private int maxS;
-    private int maxC;
     private int maxT;
     private int maxZ;
 
@@ -59,7 +57,6 @@ public class BfImageLoader extends ImageLoader {
         super(options, source);
         this.series = new ArrayList<Integer>(series);
         this.timepoints = new ArrayList<Integer>(timepoints);
-        this.channels = new ArrayList<Integer>(channels);
         this.zSections = new ArrayList<Integer>(zSections);
         this.readers = new ArrayList<ImageReader>();
     }
@@ -72,26 +69,24 @@ public class BfImageLoader extends ImageLoader {
         super(options, source);
         this.series = new ArrayList<Integer>(series);
         this.timepoints = Arrays.asList(timepoint);
-        this.channels = Arrays.asList(channel);
         this.zSections = Arrays.asList(zSection);
         this.readers = new ArrayList<ImageReader>();
     }
 
     @Override
-    public boolean loadImages() throws Exception {
+    public boolean initialise() throws Exception {
+        this.getFileList(this.source);
+        this.checkRequestedDimensions();
         this.getFileList(this.source);
         this.checkRequestedDimensions();
         // store the number of source images into the options structure
         this.options.numImagesProvided =
             options.fileNames.size() * this.series.size() *
-            this.channels.size() * this.timepoints.size() *
-            this.zSections.size();
+            this.timepoints.size() * this.zSections.size();
         if (this.options.numImagesProvided <= 0) {
             log.error("Empty dimension found. Nothing to read.");
             return false;
         }
-        log.info("Loading {} planes", this.options.numImagesProvided);
-        this.populateDimensions();
         this.options.imageSize = new Dimension(this.sizeX, this.sizeY);
         this.options.workingSize = determineWorkingSize(
             this.options.imageSize, this.options.targetNumPixels);
@@ -105,14 +100,24 @@ public class BfImageLoader extends ImageLoader {
             }
             this.readers.add(reader);
         }
-        this.readPlanes();
+        this.populateDimensions();
+        this.initialised = true;
+        return true;
+    }
+
+    @Override
+    public boolean loadImages(int channel) throws Exception {
+        log.info("Loading {} planes", this.options.numImagesProvided);
+        if (!this.initialised) {
+            this.initialise();
+        }
+        this.readPlanes(channel);
         this.preprocessData();
         return true;
     }
 
     private void populateDimensions() throws Exception {
         this.maxS = Collections.max(this.series);
-        this.maxC = Collections.max(this.channels);
         this.maxT = Collections.max(this.timepoints);
         this.maxZ = Collections.max(this.zSections);
         ImageReader reader = new ImageReader();
@@ -134,9 +139,6 @@ public class BfImageLoader extends ImageLoader {
     private void checkRequestedDimensions() {
         if (this.series.size() == 0) {
             this.series.add(0);
-        }
-        if (this.channels.size() == 0) {
-            this.channels.add(0);
         }
         if (this.timepoints.size() == 0) {
             this.timepoints.add(0);
@@ -164,10 +166,6 @@ public class BfImageLoader extends ImageLoader {
         boolean noError = true;
         if (maxS >= reader.getSeriesCount()) {
             log.error("Not enough series in {}", reader.getCurrentFile());
-            noError = false;
-        }
-        if (maxC >= reader.getSizeC()) {
-            log.error("Not enough channels in {}", reader.getCurrentFile());
             noError = false;
         }
         if (maxT >= reader.getSizeT()) {
@@ -292,20 +290,23 @@ public class BfImageLoader extends ImageLoader {
         return null;
     }
 
-    private void readPlanes() throws Exception {
+    private void readPlanes(int channel) throws Exception {
         if (this.readers.isEmpty()) {
             throw new Exception("No readers initialised.");
+        }
+        if (channel > this.sizeC) {
+            throw new Exception("Requested channel index > sizeC");
         }
         this.S.clear();
         this.maxI = 0.0;
         for (ImageReader reader : this.readers)
         {
             log.info("Reading planes from {}", reader.getCurrentFile());
-            this.loadPlanes(reader);
+            this.loadPlanes(reader, channel);
         }
     }
 
-    private void loadPlanes(ImageReader reader) throws Exception
+    private void loadPlanes(ImageReader reader, int channel) throws Exception
     {
         boolean fp = false;
         boolean unsigned = false;
@@ -326,35 +327,33 @@ public class BfImageLoader extends ImageLoader {
         int planeCounter = 0;
         for (int s : this.series) {
             reader.setSeries(s);
-            for (int c : this.channels) {
-                for (int z : this.zSections) {
-                    for (int t : this.timepoints) {
-                       byte[] plane = reader.openBytes(
-                           reader.getIndex(z, c, t));
-                       double[][] planeDouble = BfImageLoader.toDoubleArray(
-                           plane, (int) (0.125 * reader.getBitsPerPixel()),
-                           fp, reader.isLittleEndian(), unsigned,
-                           this.sizeX, this.sizeY);
-                       if (planeDouble == null) {
-                           throw new Exception("We got no pixels.");
-                       }
+            for (int z : this.zSections) {
+                for (int t : this.timepoints) {
+                   byte[] plane = reader.openBytes(
+                       reader.getIndex(z, channel, t));
+                   double[][] planeDouble = BfImageLoader.toDoubleArray(
+                       plane, (int) (0.125 * reader.getBitsPerPixel()),
+                       fp, reader.isLittleEndian(), unsigned,
+                       this.sizeX, this.sizeY);
+                   if (planeDouble == null) {
+                       throw new Exception("We got no pixels.");
+                   }
 
-                       double[][] planeRescaled = CidrePreprocess.imresize(
-                           planeDouble, this.sizeX, this.sizeY,
-                           this.options.workingSize.width,
-                           this.options.workingSize.height);
-                       max = this.findMax(planeRescaled);
-                       min = this.findMin(planeRescaled);
-                       this.maxI = Math.max(this.maxI, max);
-                       log.debug("Series {}, Min/Max: [{}, {}]", s, min, max);
-                       this.S.add(planeRescaled);
-                       if (planeCounter == 0) {
-                           minImage = planeDouble.clone();
-                       } else {
-                           minImage = CidreMath.min(planeDouble, minImage);
-                       }
-                       planeCounter++;
-                    }
+                   double[][] planeRescaled = CidrePreprocess.imresize(
+                       planeDouble, this.sizeX, this.sizeY,
+                       this.options.workingSize.width,
+                       this.options.workingSize.height);
+                   max = this.findMax(planeRescaled);
+                   min = this.findMin(planeRescaled);
+                   this.maxI = Math.max(this.maxI, max);
+                   log.debug("Series {}, Min/Max: [{}, {}]", s, min, max);
+                   this.S.add(planeRescaled);
+                   if (planeCounter == 0) {
+                       minImage = planeDouble.clone();
+                   } else {
+                       minImage = CidreMath.min(planeDouble, minImage);
+                   }
+                   planeCounter++;
                 }
             }
         }
