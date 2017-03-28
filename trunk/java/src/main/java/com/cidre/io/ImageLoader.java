@@ -29,6 +29,8 @@ public abstract class ImageLoader {
 
     protected double[][] minImage;
 
+    protected boolean initialised;
+
     private static final Logger log =
         LoggerFactory.getLogger(ImageLoader.class);
 
@@ -37,9 +39,12 @@ public abstract class ImageLoader {
         this.S = new ArrayList<double[][]>();
         this.options = options;
         this.source = source;
+        this.initialised = false;
     }
 
-    public abstract boolean loadImages() throws Exception;
+    public abstract boolean loadImages(int channel) throws Exception;
+
+    public abstract boolean initialise() throws Exception;
 
     public abstract double[][] loadPlane(Integer planeIndex) throws Exception;
 
