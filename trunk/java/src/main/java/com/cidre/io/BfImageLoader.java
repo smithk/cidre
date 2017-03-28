@@ -51,8 +51,8 @@ public class BfImageLoader extends ImageLoader {
 
     public BfImageLoader(
             Options options, String source,
-            List<Integer> series, List<Integer> channels,
-            List<Integer> zSections, List<Integer> timepoints)
+            List<Integer> series, List<Integer> zSections,
+            List<Integer> timepoints)
     {
         super(options, source);
         this.series = new ArrayList<Integer>(series);
@@ -63,8 +63,8 @@ public class BfImageLoader extends ImageLoader {
 
     public BfImageLoader(
             Options options, String source,
-            List<Integer> series, Integer channel,
-            Integer zSection, Integer timepoint)
+            List<Integer> series, Integer zSection,
+            Integer timepoint)
     {
         super(options, source);
         this.series = new ArrayList<Integer>(series);
