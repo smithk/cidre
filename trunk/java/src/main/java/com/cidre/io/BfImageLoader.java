@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -76,9 +77,9 @@ public class BfImageLoader extends ImageLoader {
     {
         super(options, source);
         this.series = new ArrayList<Integer>(series);
-        this.timepoints = new ArrayList<Integer>(timepoint);
-        this.channels = new ArrayList<Integer>(channel);
-        this.zSections = new ArrayList<Integer>(zSection);
+        this.timepoints = Arrays.asList(timepoint);
+        this.channels = Arrays.asList(channel);
+        this.zSections = Arrays.asList(zSection);
         this.readers = new ArrayList<ImageReader>();
     }
 
