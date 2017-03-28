@@ -236,9 +236,9 @@ public class Main {
         // options.zLimits[1] = 379.0;
         options.numberOfQuantiles = 221;
         BfImageLoader image_loader = new BfImageLoader(
-            options, this.input.get(0), series, 0, 0, 0);
+            options, this.input.get(0), series, 0, 0);
         try {
-            image_loader.loadImages();
+            image_loader.loadImages(1);
         } catch (Exception e) {
             log.error(e.toString());
             e.printStackTrace();
