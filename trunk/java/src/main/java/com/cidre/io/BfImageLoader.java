@@ -226,77 +226,77 @@ public class BfImageLoader extends ImageLoader {
     public static double[][] toDoubleArray(
             byte[] b, int bpp, boolean fp, boolean little, boolean unsigned,
             int width, int height)
-          {
-            log.debug("Converting to double array with bpp={}", bpp);
-            double[][] doubles = new double[width][height];
-            if (bpp == 1) {
-                byte minValue = 0;
+    {
+        log.debug("Converting to double array with bpp={}", bpp);
+        double[][] doubles = new double[width][height];
+        if (bpp == 1) {
+            byte minValue = 0;
+            if (unsigned)
+                minValue = Byte.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x][y] = (double) (b[x + y * width] - minValue);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 2) {
+            double minValue = 0;
+            if (!unsigned)
+                minValue = (double) (Short.MIN_VALUE);
+            log.debug("Converting to double array with min={}", minValue);
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x][y] = (double) (DataTools.bytesToInt(
+                        b, x * 2 + y * 2 * width, 2, little) - minValue);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 4 && fp) {
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x][y] = (double) DataTools.bytesToFloat(
+                        b, x * 4 + y * 4 * width, 4, little);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 4) {
+            for (int y = 0; y < height; y++) {
+                int minValue = 0;
                 if (unsigned)
-                    minValue = Byte.MIN_VALUE;
-                for (int y = 0; y < height; y++) {
-                    for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) (b[x + y * width] - minValue);
-                    }
+                    minValue = Integer.MIN_VALUE;
+                for(int x = 0; x < width; x++) {
+                    doubles[x][y] = (double) (DataTools.bytesToInt(
+                        b, x * 4 + y * 4 * width, 4, little) - minValue);
                 }
-                return doubles;
             }
-            else if (bpp == 2) {
-                double minValue = 0;
-                if (!unsigned)
-                    minValue = (double) (Short.MIN_VALUE);
-                log.debug("Converting to double array with min={}", minValue);
-                for (int y = 0; y < height; y++) {
-                    for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) (DataTools.bytesToInt(
-                            b, x * 2 + y * 2 * width, 2, little) - minValue);
-                    }
+            return doubles;
+        }
+        else if (bpp == 8 && fp) {
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x][y] = DataTools.bytesToDouble(
+                        b, x * 8 + y * 8 * width, 8, little);
                 }
-                return doubles;
             }
-            else if (bpp == 4 && fp) {
-                for (int y = 0; y < height; y++) {
-                    for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) DataTools.bytesToFloat(
-                            b, x * 4 + y * 4 * width, 4, little);
-                    }
+            return doubles;
+        }
+        else if (bpp == 8) {
+            long minValue = 0;
+            if (unsigned)
+                minValue = Long.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x][y] = (double) (DataTools.bytesToLong(
+                        b, x * 8 + y * 8 * width, 8, little) - minValue);
                 }
-                return doubles;
             }
-            else if (bpp == 4) {
-                for (int y = 0; y < height; y++) {
-                    int minValue = 0;
-                    if (unsigned)
-                        minValue = Integer.MIN_VALUE;
-                    for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) (DataTools.bytesToInt(
-                            b, x * 4 + y * 4 * width, 4, little) - minValue);
-                    }
-                }
-                return doubles;
-            }
-            else if (bpp == 8 && fp) {
-                for (int y = 0; y < height; y++) {
-                    for(int x = 0; x < width; x++) {
-                        doubles[x][y] = DataTools.bytesToDouble(
-                            b, x * 8 + y * 8 * width, 8, little);
-                    }
-                }
-                return doubles;
-            }
-            else if (bpp == 8) {
-                long minValue = 0;
-                if (unsigned)
-                    minValue = Long.MIN_VALUE;
-                for (int y = 0; y < height; y++) {
-                    for(int x = 0; x < width; x++) {
-                        doubles[x][y] = (double) (DataTools.bytesToLong(
-                            b, x * 8 + y * 8 * width, 8, little) - minValue);
-                    }
-                }
-                return doubles;
-            }
-            return null;
-          }
+            return doubles;
+        }
+        return null;
+    }
 
     private void readPlanes() throws Exception {
         if (this.readers.isEmpty()) {
@@ -326,27 +326,7 @@ public class BfImageLoader extends ImageLoader {
         {
             unsigned = true;
         }
-        String testDir = "/Users/emil/Documents/Data/HMS/output/resized/file_";
-        String testDir2 = "/Users/emil/Documents/Data/HMS/output/double/file_";
-        String fileName = "";
-        ServiceFactory factory = new ServiceFactory();
-        OMEXMLService service = factory.getInstance(OMEXMLService.class);
-        IMetadata meta = service.createOMEXMLMetadata();
-        IMetadata meta2 = service.createOMEXMLMetadata();
-        int width = this.options.workingSize.width;
-        int height = this.options.workingSize.height;
-        MetadataTools.populateMetadata(
-                meta, 0, null, false, "XYZCT",
-                FormatTools.getPixelTypeString(FormatTools.DOUBLE),
-                width, height,
-                1, 1, 1, 1);
-        MetadataTools.populateMetadata(
-                meta2, 0, null, false, "XYZCT",
-                FormatTools.getPixelTypeString(FormatTools.DOUBLE),
-                this.sizeX, this.sizeY,
-                1, 1, 1, 1);
-        TiffWriter writer;
-        TiffWriter writer2;
+
         double min, max;
         double[][] minImage = new double[this.sizeX][this.sizeY];
         int planeCounter = 0;
@@ -364,44 +344,15 @@ public class BfImageLoader extends ImageLoader {
                        if (planeDouble == null) {
                            throw new Exception("We got no pixels.");
                        }
-                       /*
-                       fileName = testDir2 + String.format("%03d", s) + ".tif";
-                       writer2 = new TiffWriter();
-                       writer2.setMetadataRetrieve(meta2);
-                       writer2.setId(fileName);
-                       ByteBuffer buffer2 = ByteBuffer.allocate(
-                           8 * this.sizeX * this.sizeY);
-                       for (int y = 0; y < this.sizeY; y++) {
-                           for (int x = 0; x < this.sizeX; x++) {
-                               buffer2.putDouble(planeDouble[x][y]);
-                           }
-                       }
-                       writer2.saveBytes(0, buffer2.array());
-                       writer2.close();
-                       */
+
                        double[][] planeRescaled = CidrePreprocess.imresize(
                            planeDouble, this.sizeX, this.sizeY,
                            this.options.workingSize.width,
                            this.options.workingSize.height);
-                       /*
-                       fileName = testDir + String.format("%03d", s) + ".tif";
-                       writer = new TiffWriter();
-                       writer.setMetadataRetrieve(meta);
-                       writer.setId(fileName);
-                       ByteBuffer buffer = ByteBuffer.allocate(
-                           8 * width * height);
-                       for (int y = 0; y < height; y++) {
-                           for (int x = 0; x < width; x++) {
-                               buffer.putDouble(planeRescaled[x][y]);
-                           }
-                       }
-                       writer.saveBytes(0, buffer.array());
-                       writer.close();
-                       */
                        max = this.findMax(planeRescaled);
                        min = this.findMin(planeRescaled);
                        this.maxI = Math.max(this.maxI, max);
-                       //log.info("Series {}, Min/Max: [{}, {}]", s, min, max);
+                       log.debug("Series {}, Min/Max: [{}, {}]", s, min, max);
                        this.S.add(planeRescaled);
                        if (planeCounter == 0) {
                            minImage = planeDouble.clone();
@@ -415,7 +366,9 @@ public class BfImageLoader extends ImageLoader {
         }
         max = CidreMath.max(minImage);
         min = CidreMath.min(minImage);
-        log.info("Mean: {}, max: {}, min: {}", CidreMath.mean(minImage), max, min);
+        log.debug(
+            "Min Image stats: mean: {}, max: {}, min: {}",
+            CidreMath.mean(minImage), max, min);
         this.minImage = minImage.clone();
     }
 
