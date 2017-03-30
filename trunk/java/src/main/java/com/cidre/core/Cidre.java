@@ -109,47 +109,6 @@ public class Cidre {
                         + "Cidre_model.ome.tif";
         BfModelWriter writer = new BfModelWriter(fileName, descriptor);
         writer.saveModel();
-
-        /*
-        int widthImage = descriptor.imageSize.width;
-        int heightImage = descriptor.imageSize.height;
-        int widthSmall = descriptor.imageSize_small.width;
-        int heightSmall = descriptor.imageSize_small.height;
-
-        log.info("Writing model V");
-        String fileName = this.outputDir + File.separator + "Model_V" + ".tif";
-        BfImageWriter writer = new BfImageWriter(
-            fileName, widthImage, heightImage,
-            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
-        writer.initialise();
-        writer.write(descriptor.v, 0);
-        writer.close();
-
-        fileName = this.outputDir + File.separator + "Model_V_small" + ".tif";
-        writer = new BfImageWriter(
-            fileName, widthSmall, heightSmall,
-            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
-        writer.initialise();
-        writer.write(descriptor.v_small, 0);
-        writer.close();
-
-        log.info("Writing model z");
-        fileName = this.outputDir + File.separator + "Model_Z" + ".tif";
-        writer = new BfImageWriter(
-            fileName, widthImage, heightImage,
-            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
-        writer.initialise();
-        writer.write(descriptor.z, 0);
-        writer.close();
-
-        fileName = this.outputDir + File.separator + "Model_Z_small" + ".tif";
-        writer = new BfImageWriter(
-            fileName, widthSmall, heightSmall,
-            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
-        writer.initialise();
-        writer.write(descriptor.z_small, 0);
-        writer.close();
-        */
     };
 
     /**
