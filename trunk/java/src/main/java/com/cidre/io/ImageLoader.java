@@ -173,7 +173,7 @@ public abstract class ImageLoader {
         // The new S has the same data as before, but sorted in ascending
         // order in the 3rd dimension.
         
-        log.info(" Sorting intensity by pixel location and resizing...");
+        log.info("Sorting intensity by pixel location and resizing...");
         //S = sort(S,3);
         double[] doubleValues = new double[S.size()];
         for (int x = 0; x < this.options.workingSize.width; x++) {
@@ -338,7 +338,7 @@ public abstract class ImageLoader {
         // the data. leave S as is.
         if (Z <= options.numberOfQuantiles)
         {
-            log.info("Returning cause, Z: {} <= # of Quantiles: {}",
+            log.info("Returning: Z: {} <= number of Quantiles: {}",
                      Z, options.numberOfQuantiles);
             return;
         }
