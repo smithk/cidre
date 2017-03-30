@@ -5,10 +5,13 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.cidre.core.Cidre;
 import com.cidre.core.ModelDescriptor;
 import com.esotericsoftware.minlog.Log;
 
-import loci.common.services.DependencyException;
 import loci.common.services.ServiceFactory;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
@@ -18,6 +21,9 @@ import loci.formats.out.OMETiffWriter;
 import loci.formats.services.OMEXMLService;
 
 public class BfModelWriter {
+
+    private static final Logger log =
+        LoggerFactory.getLogger(BfModelWriter.class);
 
     private OMETiffWriter writer;
 
@@ -30,8 +36,6 @@ public class BfModelWriter {
     private int sizeT = 1;
 
     private String pixelType ;
-
-    private boolean littleEndian = false;
 
     private int samplesPerPixel = 1;
 
@@ -60,25 +64,25 @@ public class BfModelWriter {
         this.metadata = service.createOMEXMLMetadata();
 
         MetadataTools.populateMetadata(
-            this.metadata, 0, "Model_V", true, "XYZCT", pixelType,
+            this.metadata, 0, "Model_V", false, "XYZCT", pixelType,
             this.descriptors.get(0).imageSize.width,
             this.descriptors.get(0).imageSize.height,
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
 
         MetadataTools.populateMetadata(
-            this.metadata, 1, "Model_Z", true, "XYZCT", pixelType,
+            this.metadata, 1, "Model_Z", false, "XYZCT", pixelType,
             this.descriptors.get(0).imageSize.width,
             this.descriptors.get(0).imageSize.height,
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
 
         MetadataTools.populateMetadata(
-            this.metadata, 2, "Model_V_small", true, "XYZCT", pixelType,
+            this.metadata, 2, "Model_V_small", false, "XYZCT", pixelType,
             this.descriptors.get(0).imageSize_small.width,
             this.descriptors.get(0).imageSize_small.height,
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
 
         MetadataTools.populateMetadata(
-            this.metadata, 3, "Model_Z_small", true, "XYZCT", pixelType,
+            this.metadata, 3, "Model_Z_small", false, "XYZCT", pixelType,
             this.descriptors.get(0).imageSize_small.width,
             this.descriptors.get(0).imageSize_small.height,
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
@@ -122,7 +126,7 @@ public class BfModelWriter {
     }
 
     private void writeToFile() throws FormatException, IOException {
-        Log.info("Writing planes to file");
+        log.info("Writing planes to file");
         int width = this.descriptors.get(0).imageSize.width;
         int height = this.descriptors.get(0).imageSize.height;
         int widthSmall = this.descriptors.get(0).imageSize_small.width;
