@@ -1,8 +1,6 @@
 package com.cidre.core;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,14 +8,8 @@ import org.slf4j.LoggerFactory;
 import com.cidre.algorithms.CidreMath;
 import com.cidre.io.BfImageLoader;
 import com.cidre.io.BfImageWriter;
-import com.cidre.preprocessing.CidrePreprocess;
 
-import loci.common.services.ServiceFactory;
 import loci.formats.FormatTools;
-import loci.formats.MetadataTools;
-import loci.formats.meta.IMetadata;
-import loci.formats.out.TiffWriter;
-import loci.formats.services.OMEXMLService;
 
 public class Cidre {
 
