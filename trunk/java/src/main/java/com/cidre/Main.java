@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cidre.algorithms.CidreMath;
+import com.cidre.core.Cidre;
 import com.cidre.core.ImageCorrection;
 import com.cidre.core.ModelDescriptor;
 import com.cidre.core.ModelGenerator;
@@ -226,6 +227,13 @@ public class Main {
         }
         // String dir = output + File.separator +  "image_loader_output";
         // this.testBuildModel(dir);
+
+        Cidre cidre = new Cidre(this.input.get(0), this.output);
+        cidre.buildModel();
+        cidre.saveModel();
+        log.info("Done");
+        if (true)
+            return;
         Options options = new Options();
         List<Integer> series = new ArrayList<Integer>();
         for (int i = 0; i < 221; i++) {
