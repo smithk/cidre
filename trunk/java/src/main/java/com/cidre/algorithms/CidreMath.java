@@ -109,7 +109,7 @@ public class CidreMath {
         p.setData(values);
         zLimits[0] = p.evaluate(0.1);
         zLimits[1] = p.evaluate(99.9);
-        log.info("zLimits {}, {}", zLimits[0], zLimits[1]);
+        log.debug("zLimits {}, {}", zLimits[0], zLimits[1]);
         return zLimits;
     }
 
