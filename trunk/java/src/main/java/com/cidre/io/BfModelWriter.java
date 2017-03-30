@@ -1,12 +1,17 @@
 package com.cidre.io;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.cidre.core.ModelDescriptor;
+import com.esotericsoftware.minlog.Log;
 
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceFactory;
+import loci.formats.FormatException;
+import loci.formats.FormatTools;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
 import loci.formats.out.OMETiffWriter;
@@ -39,12 +44,14 @@ public class BfModelWriter {
         this.fileName = fileName;
         this.descriptors = new ArrayList<ModelDescriptor>();
         this.descriptors.add(descriptor);
+        this.pixelType = FormatTools.getPixelTypeString(FormatTools.DOUBLE);
     }
 
     public BfModelWriter(String fileName, List<ModelDescriptor> descriptors) {
         this.fileName = fileName;
         this.descriptors = descriptors;
         this.sizeC = descriptors.size();
+        this.pixelType = FormatTools.getPixelTypeString(FormatTools.DOUBLE);
     }
 
     private void initialise() throws Exception {
@@ -71,7 +78,7 @@ public class BfModelWriter {
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
 
         MetadataTools.populateMetadata(
-            this.metadata, 2, "Model_Z_small", true, "XYZCT", pixelType,
+            this.metadata, 3, "Model_Z_small", true, "XYZCT", pixelType,
             this.descriptors.get(0).imageSize_small.width,
             this.descriptors.get(0).imageSize_small.height,
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
@@ -100,9 +107,9 @@ public class BfModelWriter {
                 throw new Exception(
                     "All descriptors should have the same small width");
             }
-            if (heightSmall != descriptor.imageSize_small.width) {
+            if (heightSmall != descriptor.imageSize_small.height) {
                 throw new Exception(
-                    "All descriptors should have the same smal height");
+                    "All descriptors should have the same small height");
             }
         }
     }
@@ -110,9 +117,47 @@ public class BfModelWriter {
     public void saveModel() throws Exception {
         this.checkDescriptorDimensions();
         this.initialise();
+        this.writeToFile();
+        this.close();
     }
 
-    public void close() {
-        
+    private void writeToFile() throws FormatException, IOException {
+        Log.info("Writing planes to file");
+        int width = this.descriptors.get(0).imageSize.width;
+        int height = this.descriptors.get(0).imageSize.height;
+        int widthSmall = this.descriptors.get(0).imageSize_small.width;
+        int heightSmall = this.descriptors.get(0).imageSize_small.height;
+        for (int channel = 0; channel < this.sizeC; channel++) {
+            this.write(
+                this.descriptors.get(channel).v,
+                0, channel, width, height);
+            this.write(
+                this.descriptors.get(channel).z,
+                1, channel, width, height);
+            this.write(
+                this.descriptors.get(channel).v_small,
+                2, channel, widthSmall, heightSmall);
+            this.write(
+                this.descriptors.get(channel).z_small,
+                3, channel, widthSmall, heightSmall);
+        }
+    }
+
+    private void write(
+            double[] b, int series, int imageNumber, int width, int height)
+            throws FormatException, IOException
+    {
+        this.writer.setSeries(series);
+        ByteBuffer buffer = ByteBuffer.allocate(8 * width * height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                buffer.putDouble(b[x * height + y]);
+            }
+        }
+        this.writer.saveBytes(imageNumber, buffer.array());
+    }
+
+    private void close() throws IOException {
+        this.writer.close();
     }
 }
