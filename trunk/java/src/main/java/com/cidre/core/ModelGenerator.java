@@ -145,10 +145,12 @@ public class ModelGenerator {
                                    - pivotShiftY[x * height + y];
             }
         }
-
+        log.debug("pivotX: {}, pivotY: {}, v0: {}, b0: {}",
+                  pivotShiftX, CidreMath.mean(pivotShiftY),
+                  CidreMath.mean(v0), CidreMath.mean(b0));
         log.info("Optimisation (may take few minutes) for parameters:"
-                 + "\n lambda_v: {}, lambda_z: {},"
-                 + " q_percent: {}\nz_limits: [{}, {}]",
+                 + " lambda_v: {}, lambda_z: {},"
+                 + " q_percent: {}, z_limits: [{}, {}]",
                  options.lambdaVreg, options.lambdaZero, options.qPercent,
                  this.zLimitsResult.zmin, this.zLimitsResult.zmax);
         // vector containing initial values of the variables
@@ -181,7 +183,8 @@ public class ModelGenerator {
             Q, 0, lambdaVreg, lambdaZero);
         double[] x  = minFuncResult.x;
         double fval = minFuncResult.f;
-
+        log.info("1st Optimisation result: fVal = {}; x = {}",
+                 fval, CidreMath.mean(x));
         // unpack
         double[] v1 = Arrays.copyOfRange(x, 0, width * height);
         double[] b1 = Arrays.copyOfRange(
@@ -205,12 +208,16 @@ public class ModelGenerator {
         x1[pX1++] = zx1;
         x1[pX1++] = zy1;
 
+        log.info("Mse: {}, mean(x1): {}", mse, CidreMath.mean(x1));
         minFuncResult = this.minFunc(
             imageStack, x1, minFuncOptions, mse,
             pivotShiftX, pivotShiftY, Mestimator.CAUCHY,
             Q, 1, lambdaVreg, lambdaZero);
         x = minFuncResult.x;
         fval = minFuncResult.f;
+
+        log.info("2nd Optimisation result fVal = {}; mean(x) = {}",
+                 fval, CidreMath.mean(x));
 
         // unpack the optimized v surface, b surface, xc, and yc from the vector x
         double[] v = Arrays.copyOfRange(x, 0, width * height);
@@ -240,6 +247,8 @@ public class ModelGenerator {
                                     + zx * v[c * height + r];
             }
         }
+
+        log.info("Computed mean(v): {}, mean(z):{}", CidreMath.mean(v), CidreMath.mean(z));
         this.descriptor = new ModelDescriptor();
         this.descriptor.imageSize = new Dimension(
             options.imageSize.width, options.imageSize.height);
@@ -251,8 +260,8 @@ public class ModelGenerator {
             options.imageSize.width, options.imageSize.height);
         this.descriptor.imageSize_small = new Dimension(
             options.workingSize.width, options.workingSize.height);
-        this.descriptor.v_small   = v;
-        this.descriptor.z_small   = z;
+        this.descriptor.v_small = v;
+        this.descriptor.z_small = z;
         return this.descriptor;
     }
 
@@ -403,6 +412,7 @@ public class ModelGenerator {
         // Initialize
         int p = x0.length;
         double[] d = new double[p];
+        Arrays.fill(d, 0.0);
         x = new double[x0.length];
         for (int i = 0; i < x0.length; i++) x[i] = x0[i];
         double t = 1.0d;
@@ -469,6 +479,12 @@ public class ModelGenerator {
                 for (int j = 0; j < d.length; j++) {
                     tPd[j] = t * d[j];
                 }
+                log.debug(
+                    "lbfgsAdd input: start: {}, end: {}, Hdiag: {}, tPd: {}"
+                    + " gMg_old: {}, YS: {}, S: {}, Y: {}",
+                    lbfgs_start, lbfgs_end, Hdiag, CidreMath.mean(tPd),
+                    CidreMath.mean(gMg_old), CidreMath.mean(YS),
+                    CidreMath.mean(S), CidreMath.mean(Y));
                 LbfgsAddResult lbfgsAddResult = this.lbfgsAdd(
                     gMg_old, tPd, S, Y, YS, lbfgs_start, lbfgs_end, Hdiag);
                 S = lbfgsAddResult.S;
@@ -480,6 +496,13 @@ public class ModelGenerator {
                 boolean skipped = lbfgsAddResult.skipped;
 
                 d = this.lbfgsProd(g, S, Y, YS, lbfgs_start, lbfgs_end, Hdiag);
+                log.debug(
+                    "lbfgsAdd output: start: {}, end: {}, Hdiag: {}, tPd: {}"
+                    + "gMg_old: {}, YS: {}, d: {}, S: {}, Y: {}",
+                    lbfgs_start, lbfgs_end, Hdiag, CidreMath.mean(tPd),
+                    CidreMath.mean(gMg_old), CidreMath.mean(YS),
+                    CidreMath.mean(d),
+                    CidreMath.mean(S), CidreMath.mean(Y));
             }
             for (int j = 0; j < g.length; j++) {
                 g_old[j] = g[j];
@@ -525,8 +548,11 @@ public class ModelGenerator {
             computeHessian = 0;
             // Line Search
             f_old = f;
-
-            WolfeLineSearchResult wolfeLineSearchResult = WolfeLineSearch(
+            log.debug(
+                "Input t: {}, d: {}, g: {}, g_old: {}",
+                t, CidreMath.mean(d), CidreMath.mean(g), CidreMath.mean(g_old)
+            );
+            WolfeLineSearchResult wolfeLineSearchResult = this.WolfeLineSearch(
                 imageStack, x, t, d, f, g, gtd, c1, c2, LS_interp,
                 LS_multi, 25, minFuncOptions.progTol, 1,
                 cauchy_w, pivotShiftX, pivotShiftY, method,
@@ -536,6 +562,7 @@ public class ModelGenerator {
             g = wolfeLineSearchResult.g_new;
             int LSfunEvals = wolfeLineSearchResult.funEvals;
 
+            log.debug("Result t: {}, d: {}", t, CidreMath.mean(d));
             funEvals = funEvals + LSfunEvals;
             for (int j = 0; j < x.length; j++)
                 x[j] += t * d[j];
@@ -593,6 +620,7 @@ public class ModelGenerator {
                 log.info("Reached Maximum Number of Iterations");
                 break;
             }
+            log.debug("{}, f = {}; x = {}", i, f, CidreMath.mean(x));
         }
 
         MinFuncResult minFuncResult = new MinFuncResult();
@@ -606,6 +634,13 @@ public class ModelGenerator {
             double pivotShiftX, double[] pivotShiftY, Mestimator method,
             double[] Q, int TERM, double LAMBDA_VREG, double LAMBDA_ZERO)
     {
+        log.debug(
+            "Cdr_objective input: x: {}, cauchy: {}, pivotX: {},"
+            + "pivotY: {}, method: {}, Q: {}, TERM: {}, lambda v: {},"
+            + " lambda_z: {}, z_max: {}, z_min: {}", CidreMath.mean(x), cauchy_w, pivotShiftX,
+            CidreMath.mean(pivotShiftY), method, CidreMath.mean(Q), TERM,
+            LAMBDA_VREG, LAMBDA_ZERO, this.zLimitsResult.zmax,
+            this.zLimitsResult.zmin);
         double E = 0.0;
         double[] G = null;
 
@@ -665,6 +700,7 @@ public class ModelGenerator {
                 for (int z = 0; z < depth; z++) {
                     q[z] = imageStack.get(z)[xc][y];
                 }
+
                 v = v_vec[xc * height + y];
                 b = b_vec[xc * height + y];
                 switch (method) {
@@ -701,9 +737,11 @@ public class ModelGenerator {
                 I++;
             }
         }
-        log.info("mres: {}, energy_fit: {}, deriv_v_fit: {}, deriv_b_fit: {}",
-        		 CidreMath.mean(mestimator_response), CidreMath.mean(energy_fit),
-        		 CidreMath.mean(deriv_v_fit), CidreMath.mean(deriv_b_fit));
+        log.debug("mres: {}, energy_fit: {}, deriv_v_fit: {}, deriv_b_fit: {}",
+                 CidreMath.mean(mestimator_response), CidreMath.mean(energy_fit),
+                 CidreMath.mean(deriv_v_fit), CidreMath.mean(deriv_b_fit));
+
+
         // normalize the contribution from fitting energy term by the number
         // of data points in imageStack
         // (so our balancing of the energy terms is invariant)
@@ -719,7 +757,10 @@ public class ModelGenerator {
                 I++;
             }
         }
-        E_fit *= data_size_factor;      // fit term energy
+        E_fit *= data_size_factor;      // fit term energy;
+        log.debug("Size F: {}, Lambda_v: {}, Lambda_z: {}, Lambda_barr: {}",
+                  data_size_factor, LAMBDA_VREG, LAMBDA_ZERO, LAMBDA_BARR);
+        log.debug("E_fit: {}, G_V: {}, G_B: {}", E_fit, CidreMath.mean(G_V_fit), CidreMath.mean(G_B_fit));
 
         // spatial regularization of v
         // We compute the energy of the regularization term given v,b,zx,zy.
@@ -926,8 +967,10 @@ public class ModelGenerator {
             G[pG++] = G_B[i];
         G[pG++] = G_ZX;
         G[pG++] = G_ZY;
-        log.debug("Term str = {}; zx,zy = ({}, {}); E = {}",
-                  term_str, zx, zy, E);
+
+        log.debug("cdr_objective done Term str = {}; zx,zy = ({}, {}); E = {}; G = {}\n",
+                  term_str, zx, zy, E, CidreMath.mean(G));
+
         ObjectiveResult result = new ObjectiveResult();
         result.E = E;
         result.G = G;
@@ -1108,13 +1151,20 @@ public class ModelGenerator {
         double[] d = new double[g.length];
         for (int j = 0; j < g.length; j++)
             d[j] = - g[j];
+        log.debug("lbfgsProd1: d: {}", CidreMath.mean(d));
         for (int j = 0; j < ind.length; j++)
         {
             int i = ind[ind.length-j-1];
             double sumSD = 0.0;
-            for (int k = 0; k < S.length; k++)
+            double avgS = 0.0;
+            for (int k = 0; k < S.length; k++) {
                 sumSD += (S[k][i] * d[k]) / YS[i];
+                avgS += S[k][i];
+            }
+            avgS = avgS / (double) S.length;
             al[i] = sumSD;
+            log.debug("    {} al: {}, d: {}, YS: {}, S: {}",
+                    i, al[i], CidreMath.mean(d), YS[i], avgS);
             for (int k = 0; k < d.length; k++) {
                 d[k] -= al[i] * Y[k][i];
             }
@@ -1135,6 +1185,9 @@ public class ModelGenerator {
                 d[j] += S[j][ind[i]] * (al[ind[i]] - be[ind[i]]);
             }
         }
+        log.debug("lbfgsProdf: d: {}, al: {}/{}, be: {}/{}",
+                CidreMath.mean(d), CidreMath.mean(al),
+                al.length, CidreMath.mean(be), be.length);
         return d;
     }
 
