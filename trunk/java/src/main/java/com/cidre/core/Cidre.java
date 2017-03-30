@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.cidre.algorithms.CidreMath;
 import com.cidre.io.BfImageLoader;
 import com.cidre.io.BfImageWriter;
+import com.cidre.io.BfModelWriter;
 
 import loci.formats.FormatTools;
 
@@ -104,6 +105,12 @@ public class Cidre {
     public void saveModel(ModelDescriptor descriptor) throws Exception
     {
         log.info("Saving model to {}", this.outputDir);
+        String fileName = this.outputDir + File.separator
+                        + "Cidre_model.ome.tif";
+        BfModelWriter writer = new BfModelWriter(fileName, descriptor);
+        writer.saveModel();
+
+        /*
         int widthImage = descriptor.imageSize.width;
         int heightImage = descriptor.imageSize.height;
         int widthSmall = descriptor.imageSize_small.width;
@@ -142,6 +149,7 @@ public class Cidre {
         writer.initialise();
         writer.write(descriptor.z_small, 0);
         writer.close();
+        */
     };
 
     /**
