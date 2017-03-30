@@ -2,12 +2,14 @@ package com.cidre.core;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cidre.algorithms.CidreMath;
 import com.cidre.io.BfImageLoader;
+import com.cidre.io.BfImageWriter;
 import com.cidre.preprocessing.CidrePreprocess;
 
 import loci.common.services.ServiceFactory;
@@ -40,6 +42,8 @@ public class Cidre {
 
     private final double lambdaZDefaultValue = 0.5;
 
+    private ModelDescriptor descriptor = null;
+
     private String input;
 
     private String outputDir;
@@ -58,34 +62,34 @@ public class Cidre {
      */
     public void buildModel()
     {
+        log.info("Building CIDRE model");
         Options options = new Options();
-        
-        BfImageLoader image_loader = new BfImageLoader(
-            options, this.input, series, 0, 0);
+        BfImageLoader image_loader = new BfImageLoader(options, this.input);
         try {
-            image_loader.loadImages(1);
+            image_loader.initialise();
         } catch (Exception e) {
             log.error(e.toString());
             e.printStackTrace();
+            return;
+        }
+        options.numberOfQuantiles = image_loader.getSizeS();
+        options.numImagesProvided = image_loader.getSizeS();
+        log.info("Building model from {} images [{}, {}]",
+                 image_loader.getSizeS(), image_loader.getWidth(),
+                 image_loader.getHeight());
+        try {
+            image_loader.loadImages(0);
+        } catch (Exception e) {
+            log.error(e.toString());
+            e.printStackTrace();
+            return;
         }
         double[] zLimits = CidreMath.zLimitsFromPercentiles(
-            image_loader.getMinImage());
+                image_loader.getMinImage());
         options.zLimits[0] = zLimits[0];
         options.zLimits[1] = zLimits[1];
-        this.printOptions(options);
-
         ModelGenerator model = new ModelGenerator(options);
-        ModelDescriptor descriptor = model.generate(
-            image_loader.getStack());
-        /*
-        options.folderSource = "";
-        options.fileFilterSource = "";
-        options.folderDestination = "";
-        options.lambdaVreg = lambdaVreg;
-        options.lambdaZero = lambdaZero;
-        options.zLimits[0] = zMin;
-        options.zLimits[1] = zMax;
-        */
+        this.descriptor = model.generate(image_loader.getStack());
     }
 
     /**
