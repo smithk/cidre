@@ -315,6 +315,82 @@ public class BfImageLoader extends ImageLoader {
         return null;
     }
 
+    public static double[] toDoubleVector(
+            byte[] b, int bpp, boolean fp, boolean little, boolean unsigned,
+            int width, int height)
+    {
+        log.debug("Converting to double array with bpp={}", bpp);
+        double[] doubles = new double[width * height];
+        if (bpp == 1) {
+            byte minValue = 0;
+            if (unsigned)
+                minValue = Byte.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x + y * width] = (double) (
+                        b[x + y * width] - minValue);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 2) {
+            double minValue = 0;
+            if (!unsigned)
+                minValue = (double) (Short.MIN_VALUE);
+            log.debug("Converting to double array with min={}", minValue);
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x + y * width] = (double) (DataTools.bytesToInt(
+                        b, x * 2 + y * 2 * width, 2, little) - minValue);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 4 && fp) {
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x + y * width] = (double) DataTools.bytesToFloat(
+                        b, x * 4 + y * 4 * width, 4, little);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 4) {
+            for (int y = 0; y < height; y++) {
+                int minValue = 0;
+                if (unsigned)
+                    minValue = Integer.MIN_VALUE;
+                for(int x = 0; x < width; x++) {
+                    doubles[x + y * width] = (double) (DataTools.bytesToInt(
+                        b, x * 4 + y * 4 * width, 4, little) - minValue);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 8 && fp) {
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x + y * width] = DataTools.bytesToDouble(
+                        b, x * 8 + y * 8 * width, 8, little);
+                }
+            }
+            return doubles;
+        }
+        else if (bpp == 8) {
+            long minValue = 0;
+            if (unsigned)
+                minValue = Long.MIN_VALUE;
+            for (int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    doubles[x + y * width] = (double) (DataTools.bytesToLong(
+                        b, x * 8 + y * 8 * width, 8, little) - minValue);
+                }
+            }
+            return doubles;
+        }
+        return null;
+    }
+
     private void readPlanes(int channel) throws Exception {
         if (this.readers.isEmpty()) {
             throw new Exception("No readers initialised.");
