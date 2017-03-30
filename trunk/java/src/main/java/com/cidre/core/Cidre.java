@@ -150,43 +150,6 @@ public class Cidre {
         writer.initialise();
         writer.write(descriptor.z_small, 0);
         writer.close();
-        /*
-        // Save Model V
-        ServiceFactory factory = new ServiceFactory();
-        OMEXMLService service = factory.getInstance(OMEXMLService.class);
-        IMetadata meta = service.createOMEXMLMetadata();
-        MetadataTools.populateMetadata(
-            meta, 0, null, false, "XYZCT",
-            FormatTools.getPixelTypeString(FormatTools.DOUBLE),
-            this.width, this.height, 1, 1, 1, 1);
-        TiffWriter writer = new TiffWriter();
-        writer.setMetadataRetrieve(meta);
-        String fileName = this.outputDir + File.separator
-                        + "Model_V" + ".tif";
-        writer.setId(fileName);
-        ByteBuffer buffer = ByteBuffer.allocate(8 * widthImage * heightImage);
-        for (int y = 0; y < heightImage; y++) {
-            for (int x = 0; x < widthImage; x++) {
-                buffer.putDouble(descriptor.v[x * heightImage + y]);
-            }
-        }
-        writer.saveBytes(0, buffer.array());
-        writer.close();
-        // Save model Z
-        writer = new TiffWriter();
-        writer.setMetadataRetrieve(meta);
-        fileName = this.outputDir + File.separator
-                 + "Model_Z" + ".tif";
-        writer.setId(fileName);
-        buffer = ByteBuffer.allocate(8 * widthImage * heightImage);
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
-                buffer.putDouble(descriptor.z[x * this.height + y]);
-            }
-        }
-        writer.saveBytes(0, buffer.array());
-        writer.close();
-        */
     };
 
     /**
