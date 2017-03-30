@@ -28,14 +28,23 @@ public class CidrePreprocess {
         int[] hist = new int[options.bitDepth];
         double[] P = new double[options.bitDepth];
         double value = 0;
+        boolean reported = false;
         for (int z = 0; z < stack.size(); z++) {
             double[][] doubleArray = stack.get(z);
             for (int x = 0; x < options.workingSize.width; x++) {
                 for (int y = 0; y < options.workingSize.height; y++) {
                     value = doubleArray[x][y];
-                    if (value < 0 || value >= options.bitDepth - 1) {
-                        log.info("[{},{}] Value {}, int value {}",
-                                  x, y, value, Math.round(value));
+                    if (!reported && (value < 0 || value >= options.bitDepth - 1)) {
+                        log.error("Stack contains pixels values out of range;"
+                                + " e.g.: Plane: {}, pixel: [{}, {}],"
+                                + " Value: {}", z, x, y, Math.round(value));
+                        log.info("Switch to debug mode to see all values");
+                        reported = true;
+                        continue;
+                    } else if (value < 0 || value >= options.bitDepth - 1) {
+                        log.debug("Pixel Out of range: Plane: {},"
+                                + "pixel: [{}, {}], Value: {}",
+                                z, x, y, Math.round(value));
                         continue;
                     }
                     //log.info("Hist value: {}", (int) Math.round(value));
