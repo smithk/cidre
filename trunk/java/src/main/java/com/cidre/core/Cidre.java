@@ -100,8 +100,57 @@ public class Cidre {
     /**
      * Save CIDRE model
      */
+    public void saveModel() throws Exception
+    {
+        if (this.descriptor != null) {
+            this.saveModel(this.descriptor);
+        } else {
+            log.error("Could not save model Descriptor is Null");
+        }
+    }
+
     public void saveModel(ModelDescriptor descriptor) throws Exception
     {
+        log.info("Saving model to {}", this.outputDir);
+        int widthImage = descriptor.imageSize.width;
+        int heightImage = descriptor.imageSize.height;
+        int widthSmall = descriptor.imageSize_small.width;
+        int heightSmall = descriptor.imageSize_small.height;
+
+        log.info("Writing model V");
+        String fileName = this.outputDir + File.separator + "Model_V" + ".tif";
+        BfImageWriter writer = new BfImageWriter(
+            fileName, widthImage, heightImage,
+            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
+        writer.initialise();
+        writer.write(descriptor.v, 0);
+        writer.close();
+
+        fileName = this.outputDir + File.separator + "Model_V_small" + ".tif";
+        writer = new BfImageWriter(
+            fileName, widthSmall, heightSmall,
+            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
+        writer.initialise();
+        writer.write(descriptor.v_small, 0);
+        writer.close();
+
+        log.info("Writing model z");
+        fileName = this.outputDir + File.separator + "Model_Z" + ".tif";
+        writer = new BfImageWriter(
+            fileName, widthImage, heightImage,
+            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
+        writer.initialise();
+        writer.write(descriptor.z, 0);
+        writer.close();
+
+        fileName = this.outputDir + File.separator + "Model_Z_small" + ".tif";
+        writer = new BfImageWriter(
+            fileName, widthSmall, heightSmall,
+            FormatTools.getPixelTypeString(FormatTools.DOUBLE));
+        writer.initialise();
+        writer.write(descriptor.z_small, 0);
+        writer.close();
+        /*
         // Save Model V
         ServiceFactory factory = new ServiceFactory();
         OMEXMLService service = factory.getInstance(OMEXMLService.class);
@@ -115,10 +164,10 @@ public class Cidre {
         String fileName = this.outputDir + File.separator
                         + "Model_V" + ".tif";
         writer.setId(fileName);
-        ByteBuffer buffer = ByteBuffer.allocate(8 * this.width * this.height);
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
-                buffer.putDouble(descriptor.v[x * this.height + y]);
+        ByteBuffer buffer = ByteBuffer.allocate(8 * widthImage * heightImage);
+        for (int y = 0; y < heightImage; y++) {
+            for (int x = 0; x < widthImage; x++) {
+                buffer.putDouble(descriptor.v[x * heightImage + y]);
             }
         }
         writer.saveBytes(0, buffer.array());
@@ -129,7 +178,7 @@ public class Cidre {
         fileName = this.outputDir + File.separator
                  + "Model_Z" + ".tif";
         writer.setId(fileName);
-        buffer = ByteBuffer.allocate(8 * this.width * this.height);
+        buffer = ByteBuffer.allocate(8 * widthImage * heightImage);
         for (int y = 0; y < this.height; y++) {
             for (int x = 0; x < this.width; x++) {
                 buffer.putDouble(descriptor.z[x * this.height + y]);
@@ -137,6 +186,7 @@ public class Cidre {
         }
         writer.saveBytes(0, buffer.array());
         writer.close();
+        */
     };
 
     /**
