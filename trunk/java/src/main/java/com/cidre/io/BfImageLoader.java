@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +31,9 @@ public class BfImageLoader extends ImageLoader {
             LoggerFactory.getLogger(BfImageLoader.class);
 
     // passed in
-    private List<Integer> series;
-    private List<Integer> zSections;
-    private List<Integer> timepoints;
+    private List<Integer> series = new ArrayList<Integer>();
+    private List<Integer> zSections = new ArrayList<Integer>();
+    private List<Integer> timepoints = new ArrayList<Integer>();
 
     // derived from passed in
     private int maxS;
@@ -73,23 +75,15 @@ public class BfImageLoader extends ImageLoader {
         this.readers = new ArrayList<ImageReader>();
     }
 
+    public BfImageLoader(Options options, String source) {
+        super(options, source);
+        this.readers = new ArrayList<ImageReader>();
+    }
+
     @Override
     public boolean initialise() throws Exception {
         this.getFileList(this.source);
-        this.checkRequestedDimensions();
-        this.getFileList(this.source);
-        this.checkRequestedDimensions();
-        // store the number of source images into the options structure
-        this.options.numImagesProvided =
-            options.fileNames.size() * this.series.size() *
-            this.timepoints.size() * this.zSections.size();
-        if (this.options.numImagesProvided <= 0) {
-            log.error("Empty dimension found. Nothing to read.");
-            return false;
-        }
-        this.options.imageSize = new Dimension(this.sizeX, this.sizeY);
-        this.options.workingSize = determineWorkingSize(
-            this.options.imageSize, this.options.targetNumPixels);
+        this.populateDimensions(); //  Call it first!!!!!!
         this.readers.clear();
         for (String fileName : this.options.fileNames) {
             ImageReader reader = new ImageReader();
@@ -100,30 +94,60 @@ public class BfImageLoader extends ImageLoader {
             }
             this.readers.add(reader);
         }
-        this.populateDimensions();
+        // store the number of source images into the options structure
+        if (true) { // For now no z or t support!
+            this.options.numImagesProvided = this.sizeS;
+        } else {
+            this.options.numImagesProvided =
+                this.sizeS * this.sizeT * this.sizeZ;
+        }
+        if (this.options.numImagesProvided <= 0) {
+            log.error("Empty dimension found. Nothing to read.");
+            return false;
+        }
+        this.options.imageSize = new Dimension(this.sizeX, this.sizeY);
+        this.options.workingSize = determineWorkingSize(
+            this.options.imageSize, this.options.targetNumPixels);
         this.initialised = true;
         return true;
     }
 
     @Override
     public boolean loadImages(int channel) throws Exception {
-        log.info("Loading {} planes", this.options.numImagesProvided);
+        log.info("Loading planes from channel {}", channel);
         if (!this.initialised) {
             this.initialise();
         }
+        this.checkRequestedDimensions();
         this.readPlanes(channel);
         this.preprocessData();
         return true;
     }
 
     private void populateDimensions() throws Exception {
-        this.maxS = Collections.max(this.series);
-        this.maxT = Collections.max(this.timepoints);
-        this.maxZ = Collections.max(this.zSections);
+        if (!this.series.isEmpty()) {
+            this.maxS = Collections.max(this.series);
+        } else {
+            this.maxS = -1;
+        }
+        if (!this.timepoints.isEmpty()) {
+            this.maxT = Collections.max(this.timepoints);
+        } else {
+            this.maxT = -1;
+        }
+        if (!this.timepoints.isEmpty()) {
+            this.maxZ = Collections.max(this.zSections);
+        } else {
+            this.maxZ = -1;
+        }
         ImageReader reader = new ImageReader();
         BfImageLoader.initializeReader(reader);
         reader.setId(this.options.fileNames.get(0));
-        reader.setSeries(this.series.get(0));
+        if (!this.series.isEmpty()) {
+            reader.setSeries(this.series.get(0));
+        } else {
+            reader.setSeries(0);
+        }
         this.sizeS = reader.getSeriesCount();
         this.sizeC = reader.getSizeC();
         this.sizeT = reader.getSizeT();
@@ -136,9 +160,10 @@ public class BfImageLoader extends ImageLoader {
         }
     }
 
-    private void checkRequestedDimensions() {
-        if (this.series.size() == 0) {
-            this.series.add(0);
+    private void checkRequestedDimensions() throws Exception {
+        if (this.series.isEmpty()) {
+            this.series = IntStream.range(0, this.sizeS).boxed().collect(
+                Collectors.toList());
         }
         if (this.timepoints.size() == 0) {
             this.timepoints.add(0);
@@ -325,6 +350,10 @@ public class BfImageLoader extends ImageLoader {
         double min, max;
         double[][] minImage = new double[this.sizeX][this.sizeY];
         int planeCounter = 0;
+        log.info(
+            "Loading {} planes",
+            this.series.size() * this.timepoints.size() *
+            this.zSections.size());
         for (int s : this.series) {
             reader.setSeries(s);
             for (int z : this.zSections) {
@@ -522,5 +551,9 @@ public class BfImageLoader extends ImageLoader {
     @Override
     public int getHeight() {
         return this.sizeY;
+    }
+
+    public int getSizeS() {
+        return this.sizeS;
     }
 }
