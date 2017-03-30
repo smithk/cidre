@@ -45,7 +45,8 @@ public class BfImageWriter {
     }
 
     public BfImageWriter(
-            String fileName, boolean littleEndian, int width, int height,
+            String fileName, boolean littleEndian,
+            int width, int height,
             int sizeZ, int sizeC, int sizeT,
             String pixelType, int samplesPerPixel)
     {
