@@ -1,22 +1,15 @@
 package com.cidre.io;
 
 import java.awt.Dimension;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cidre.core.ModelDescriptor;
 
-import loci.common.services.DependencyException;
-import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
-import loci.formats.FormatException;
 import loci.formats.ImageReader;
 import loci.formats.in.DefaultMetadataOptions;
 import loci.formats.in.MetadataOptions;
@@ -28,8 +21,6 @@ public class BfModelLoader {
 
     private static final Logger log =
         LoggerFactory.getLogger(BfModelLoader.class);
-
-    private List<ModelDescriptor> descriptors;
 
     private ImageReader reader;
 
