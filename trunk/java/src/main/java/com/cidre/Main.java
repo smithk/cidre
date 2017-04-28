@@ -49,6 +49,9 @@ public class Main {
     private ArrayList<Integer> channels;
 
     @Arg
+    private Boolean planePerFile;
+
+    @Arg
     private Boolean debug;
 
     @Arg
@@ -64,20 +67,25 @@ public class Main {
             ArgumentParsers.newArgumentParser("stitcher");
         parser.description("Passing Folder or ");
         parser.addArgument("--input").nargs("*")
-            .help("Directory path, file path, list of file paths or "
-                    + "file path masks are valid inputs. The processing by "
-                    + "default will generate a model based on all the passed "
-                    + "files. Look at `correctUsingSeries` flag for more"
-                    + "details. ");
-        parser.addArgument("--output").help("Output directory");
+              .help("Directory path, file path, list of file paths or "
+                   + "file path masks are valid inputs.\n"
+                   + "One model file per input file will be created. Unless "
+                   + "planePerFile flag is specified.");
+        parser.addArgument("--output")
+              .help("Output directory.\n"
+                  + "A multi-channel model file per input file / set of files "
+                  + "will be created.");
         parser.addArgument("--channels").nargs("*").type(Integer.class)
               .help("Select channels to calculate "
-                      + "Illumination Correction for");
-        parser.addArgument("--correctUsingSeries")
-              .help("Images from different series, the same channel, will "
-                      + "be used to generate illumination correction model."
-                      + " Passing multiple files will result in computation"
-                      + " of model a model per file per channel.");
+                    + "the illumination correction for.");
+        parser.addArgument("--illuminationCorrectionMode")
+              .choices(Options.CorrectionMode.values())
+              .setDefault(Options.CorrectionMode.ZERO_LIGHT_PRESERVED)
+              .help("Select IlluminationCorrection mode.");
+        parser.addArgument("--planePerFile")
+              .action(Arguments.storeTrue())
+              .help("Use this option if the planes are stored one per file"
+                  + " rather then all in a single file.");
         parser.addArgument("--debug")
               .action(Arguments.storeTrue())
               .help("Set logging level to Debug");
