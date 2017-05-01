@@ -44,7 +44,7 @@ public class Cidre {
 
     private final double lambdaZDefaultValue = 0.5;
 
-    private List<ModelDescriptor> descriptors = null;
+    ArrayList<ModelDescriptor> descriptors = null;
 
     private String input = null;
 
@@ -53,8 +53,6 @@ public class Cidre {
     private String outputDir = null;
 
     private String modelOutputDir = null;
-
-    private BfImageLoader image_loader = null;
 
     private BfImageLoader imageLoader = null;
 
@@ -121,53 +119,53 @@ public class Cidre {
             this.applyModel();
         }
     }
+
+    public ArrayList<ModelDescriptor> getModel() {
+        return this.descriptors;
+    }
+
     /**
      * Build CIDRE model
      */
-    public void buildModel()
+    public ArrayList<ModelDescriptor> buildModel()
     {
         log.info("Building CIDRE model");
-        if (this.descriptors == null) {
-            this.descriptors = new ArrayList<ModelDescriptor>();
-        } else {
-            this.descriptors.clear();
-        }
         Options options = new Options();
-        this.image_loader = new BfImageLoader(options, this.input);
+        this.imageLoader = new BfImageLoader(options, this.input);
         try {
-            image_loader.initialise();
+            this.imageLoader.initialise();
         } catch (Exception e) {
             log.error(e.toString());
             e.printStackTrace();
-            return;
+            return null;
         }
-        options.numberOfQuantiles = image_loader.getSizeS();
-        options.numImagesProvided = image_loader.getSizeS();
+        options.numberOfQuantiles = this.imageLoader.getSizeS();
+        options.numImagesProvided = this.imageLoader.getSizeS();
         log.info("Building model from {} images [{}, {}]",
-                 image_loader.getSizeS(), image_loader.getWidth(),
-                 image_loader.getHeight());
+                 this.imageLoader.getSizeS(), this.imageLoader.getWidth(),
+                 this.imageLoader.getHeight());
         for (int channel = 0;
-             channel < this.image_loader.getSizeC(); channel++)
+             channel < this.imageLoader.getSizeC(); channel++)
         {
             try {
-                image_loader.loadImages(channel);
+                this.imageLoader.loadImages(channel);
             } catch (Exception e) {
                 log.error(e.toString());
                 e.printStackTrace();
-                return;
+                return null;
             }
             double[] zLimits = CidreMath.zLimitsFromPercentiles(
-                image_loader.getMinImage());
+                this.imageLoader.getMinImage());
             options.zLimits[0] = zLimits[0];
             options.zLimits[1] = zLimits[1];
             ModelGenerator model = new ModelGenerator(options);
             ModelDescriptor descriptor = model.generate(
-                this.image_loader.getStack());
-            double[][] minImage = image_loader.getMinImage();
+                this.imageLoader.getStack());
+            double[][] minImage = this.imageLoader.getMinImage();
             double[] buffer = new double[
-                image_loader.getHeight() * image_loader.getWidth()];
-            int width = this.image_loader.getWidth();
-            int height = this.image_loader.getHeight();
+                this.imageLoader.getHeight() * this.imageLoader.getWidth()];
+            int width = this.imageLoader.getWidth();
+            int height = this.imageLoader.getHeight();
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     buffer[x * height + y] = minImage[x][y];
@@ -176,6 +174,7 @@ public class Cidre {
             descriptor.minImage = buffer;
             this.descriptors.add(descriptor);
         }
+        return this.descriptors;
     }
 
     /**
@@ -183,8 +182,8 @@ public class Cidre {
      * @throws Exception 
      */
     public void loadModel() throws Exception {
-        BfModelLoader loader = new BfModelLoader(this.modelPath);
-        List<ModelDescriptor> descriptor = loader.loadModel();
+        BfModelLoader loader = new BfModelLoader(this.modelInput);
+        this.descriptors = loader.loadModel();
     };
 
     /**
@@ -199,13 +198,13 @@ public class Cidre {
         }
     }
 
-    public void saveModel(List<ModelDescriptor> descriptors2) throws Exception
+    public void saveModel(ArrayList<ModelDescriptor> descriptor) throws Exception
     {
-        log.info("Saving model to {}", this.outputDir);
-        File f = new File(this.input);
-        String fileName = f.getName().split("\\.")[0] + ".ill.cor.ome.tif";
+        log.info("Saving model to {}", this.modelOutputDir);
+        File modelOut = new File(this.modelOutputDir);
+        String fileName = modelOut.getName().split("\\.")[0] + ".ill.cor.ome.tif";
         fileName = this.outputDir + File.separator + fileName;
-        BfModelWriter writer = new BfModelWriter(fileName, descriptors2);
+        BfModelWriter writer = new BfModelWriter(fileName, descriptors);
         writer.saveModel();
     };
 
@@ -214,9 +213,9 @@ public class Cidre {
      * @throws Exception 
      */
     public void applyModel() throws Exception {
-        if (this.image_loader == null) {
+        if (this.imageLoader == null) {
             Options options = new Options();
-            this.image_loader = new BfImageLoader(options, this.input);
+            this.imageLoader = new BfImageLoader(options, this.input);
         }
         ServiceFactory factory = new ServiceFactory();
         OMEXMLService service = factory.getInstance(OMEXMLService.class);
@@ -226,16 +225,16 @@ public class Cidre {
         float[][] pixelsFloat;
         String fileName;
         ImageCorrection corrector = new ImageCorrection(
-            this.descriptors.get(0),
+            this.descriptors.get(channel),
             Options.CorrectionMode.DYNAMIC_RANGE_CORRECTED,
-            this.outputDir, this.image_loader);
+            this.outputDir, this.imageLoader);
         MetadataTools.populateMetadata(
             meta, 0, null, false, "XYZCT",
             FormatTools.getPixelTypeString(FormatTools.FLOAT),
-            this.image_loader.getWidth(), this.image_loader.getHeight(),
+            this.imageLoader.getWidth(), this.imageLoader.getHeight(),
             1, 1, 1, 1);
-        for (int s = 0; s < this.image_loader.getSizeS(); s++) {
-            pixels = this.image_loader.loadPlane(
+        for (int s = 0; s < this.imageLoader.getSizeS(); s++) {
+            pixels = this.imageLoader.loadPlane(
                 s, channel, timepoint, zPlane);
             pixelsFloat = corrector.correctPlane(pixels);
             fileName = this.outputDir + File.separator
@@ -243,8 +242,8 @@ public class Cidre {
             TiffWriter writer = new TiffWriter();
             writer.setMetadataRetrieve(meta);
             writer.setId(fileName);
-            int width = this.image_loader.getWidth();
-            int height = this.image_loader.getHeight();
+            int width = this.imageLoader.getWidth();
+            int height = this.imageLoader.getHeight();
             ByteBuffer buffer = ByteBuffer.allocate(4 * width * height);
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
