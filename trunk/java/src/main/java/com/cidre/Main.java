@@ -194,18 +194,21 @@ public class Main {
 
         ArrayList<String> fileNames = this.getFileList(this.input);
         if (this.planePerFile && this.input.size() == 1
-            && this.modelFiles.size() == 1) {
+            && this.modelFiles.size() == 1)
+        {
             Cidre cidre = new Cidre(
                 this.input.get(0), this.output,
                 this.modelFiles.get(0), this.modelOutput,
                 this.useMinImage, this.skipPreprocessing);
             cidre.execute();
-        } else if (!this.planePerFile){
+        } else if (!this.planePerFile) {
             for (String fileName : fileNames) {
                 Cidre cidre = new Cidre(fileName, this.output);
                 cidre.execute();
             }
-        } else if (this.planePerFile && this.input.size() > 1) {
+        } else if (this.planePerFile &&
+                   (this.input.size() > 1 || this.modelFiles.size() > 1))
+        {
             throw new Exception(
                 "For `planePerFile` option single input Directory or "
                 + " a file name mask expected. Use wildcard cahracter `*`"
