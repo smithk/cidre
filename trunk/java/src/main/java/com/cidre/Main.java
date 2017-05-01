@@ -193,19 +193,17 @@ public class Main {
         }
 
         ArrayList<String> fileNames = this.getFileList(this.input);
-        Cidre cidre = null;
         if (this.planePerFile && this.input.size() == 1
             && this.modelFiles.size() == 1) {
-            cidre = new Cidre(
+            Cidre cidre = new Cidre(
                 this.input.get(0), this.output,
                 this.modelFiles.get(0), this.modelOutput,
                 this.useMinImage, this.skipPreprocessing);
+            cidre.execute();
         } else if (!this.planePerFile){
             for (String fileName : fileNames) {
-                cidre = new Cidre(fileName, this.output);
-                cidre.buildModel();
-                cidre.saveModel();
-                cidre.applyModel();
+                Cidre cidre = new Cidre(fileName, this.output);
+                cidre.execute();
             }
         } else if (this.planePerFile && this.input.size() > 1) {
             throw new Exception(
