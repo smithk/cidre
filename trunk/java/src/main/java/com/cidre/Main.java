@@ -193,16 +193,25 @@ public class Main {
         }
 
         ArrayList<String> fileNames = this.getFileList(this.input);
-
-        if (this.planePerFile) {
-            
-        } else {
+        Cidre cidre = null;
+        if (this.planePerFile && this.input.size() == 1
+            && this.modelFiles.size() == 1) {
+            cidre = new Cidre(
+                this.input.get(0), this.output,
+                this.modelFiles.get(0), this.modelOutput,
+                this.useMinImage, this.skipPreprocessing);
+        } else if (!this.planePerFile){
             for (String fileName : fileNames) {
-                Cidre cidre = new Cidre(fileName, this.output);
+                cidre = new Cidre(fileName, this.output);
                 cidre.buildModel();
                 cidre.saveModel();
                 cidre.applyModel();
             }
+        } else if (this.planePerFile && this.input.size() > 1) {
+            throw new Exception(
+                "For `planePerFile` option single input Directory or "
+                + " a file name mask expected. Use wildcard cahracter `*`"
+                + " to specify multiple input files.");
         }
         log.info("Done");
     };
