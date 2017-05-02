@@ -14,7 +14,7 @@ public class ImageCorrection {
     private static final Logger log =
         LoggerFactory.getLogger(ImageCorrection.class);
 
-    private ModelDescriptor model;
+    private ModelDescriptor descriptor;
 
     private Options.CorrectionMode correctionMode;
 
@@ -29,10 +29,10 @@ public class ImageCorrection {
     private boolean modelInitialised;
 
     public ImageCorrection(
-            ModelDescriptor model, Options.CorrectionMode correctionMode,
+            ModelDescriptor descriptor, Options.CorrectionMode correctionMode,
             String outputDirectory, ImageLoader imageLoader)
     {
-        this.model = model;
+        this.descriptor = descriptor;
         this.correctionMode = correctionMode;
         this.outputDirectory = outputDirectory;
         this.imageLoader = imageLoader;
@@ -40,8 +40,8 @@ public class ImageCorrection {
     }
 
     private void initializeModel() {
-        this.mean_v = CidreMath.mean(model.v);
-        this.mean_z = CidreMath.mean(model.z);
+        this.mean_v = CidreMath.mean(descriptor.v);
+        this.mean_z = CidreMath.mean(descriptor.z);
         this.modelInitialised = true;
     }
 
@@ -50,22 +50,25 @@ public class ImageCorrection {
             this.initializeModel();
         }
         return this.correctPlane(
-            pixelData, this.model.imageSize.width,
-            this.model.imageSize.height);
+            pixelData, this.descriptor.imageSize.width,
+            this.descriptor.imageSize.height);
     }
 
     private float[][] correctPlane(double[][] pixelData, int width, int height)
     {
-        double[][] minImage = this.imageLoader.getMinImage();
-        double minImageMean = CidreMath.mean(minImage);
+        double minImageMean = CidreMath.mean(descriptor.minImage);
         double enumerator, denominator;
+        log.info("{}, {}", width, height);
+        log.info("{}, {} ,{}", mean_v, mean_z, minImageMean);
         float[][] floatArray = new float[width][height];
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 // enumerator = pixelData[x][y] - model.z[x * height + y];
                 enumerator =
-                    pixelData[x][y] - (minImage[x][y] - minImageMean + mean_z);
-                denominator = model.v[x * height + y];
+                    pixelData[x][y] - (
+                    descriptor.minImage[x * height + y]
+                    - minImageMean + mean_z);
+                denominator = descriptor.v[x * height + y];
                 switch(this.correctionMode)
                 {
                     case ZERO_LIGHT_PRESERVED:
@@ -86,6 +89,8 @@ public class ImageCorrection {
                 }
             }
         }
+        log.info("Image size {}, mean: {}",
+                 floatArray.length, CidreMath.mean(floatArray));
         return floatArray;
     }
 
@@ -110,8 +115,8 @@ public class ImageCorrection {
         log.info("Writing {} corrected images to {}",
                  modeName, this.outputDirectory);
 
-        int width = this.model.imageSize.width;
-        int height = this.model.imageSize.height;
+        int width = this.descriptor.imageSize.width;
+        int height = this.descriptor.imageSize.height;
 
         double[][] doubleArray;
         float[][] floatArray;
