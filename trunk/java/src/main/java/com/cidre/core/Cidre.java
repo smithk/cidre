@@ -3,14 +3,12 @@ package com.cidre.core;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cidre.algorithms.CidreMath;
 import com.cidre.io.BfImageLoader;
-import com.cidre.io.BfImageWriter;
 import com.cidre.io.BfModelLoader;
 import com.cidre.io.BfModelWriter;
 
@@ -19,7 +17,6 @@ import loci.formats.FormatTools;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
 import loci.formats.out.OMETiffWriter;
-import loci.formats.out.TiffWriter;
 import loci.formats.services.OMEXMLService;
 
 public class Cidre {
@@ -282,7 +279,7 @@ public class Cidre {
                 pixels = this.imageLoader.loadPlane(
                     s, channel, timepoint, zPlane);
                 pixelsFloat = ImageCorrection.correctPlane(
-                    pixels, descriptor, this.correctionMode);
+                    pixels, descriptor, this.correctionMode, this.useMinImage);
                 ByteBuffer buffer = ByteBuffer.allocate(4 * width * height);
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
