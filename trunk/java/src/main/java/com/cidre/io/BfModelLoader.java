@@ -82,8 +82,6 @@ public class BfModelLoader {
         }
     }
 
-    
-
     private ModelDescriptor loadDescriptor(int channel) throws Exception
     {
         log.info("Loading descriptor");
@@ -155,8 +153,9 @@ public class BfModelLoader {
         return descriptor;
     }
 
-    public List<ModelDescriptor> loadModel() throws Exception {
-        List<ModelDescriptor> descriptors = new ArrayList<ModelDescriptor>();
+    public ArrayList<ModelDescriptor> loadModel() throws Exception {
+        ArrayList<ModelDescriptor> descriptors =
+            new ArrayList<ModelDescriptor>();
         this.initializeReader();
         this.checkDimensions();
         for (int channel = 0; channel < this.numberOfChannels; channel++) {
