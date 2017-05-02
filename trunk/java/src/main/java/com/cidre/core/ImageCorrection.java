@@ -1,7 +1,5 @@
 package com.cidre.core;
 
-import java.io.Writer;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +92,52 @@ public class ImageCorrection {
         return floatArray;
     }
 
-    
+    public static float[][] correctPlane(
+        double[][] pixelData, ModelDescriptor descriptor,
+        Options.CorrectionMode correctionMode)
+    {
+        double minImageMean = CidreMath.mean(descriptor.minImage);
+        double enumerator, denominator;
+        int width = descriptor.imageSize.width,
+            height = descriptor.imageSize.height;
+        double mean_v = CidreMath.mean(descriptor.v);
+        double mean_z = CidreMath.mean(descriptor.z);
+        log.debug("{}, {}", width, height);
+        log.debug("{}, {} ,{}", mean_v, mean_z, minImageMean);
+        float[][] floatArray = new float[width][height];
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                // enumerator = pixelData[x][y] - model.z[x * height + y];
+                enumerator =
+                    pixelData[x][y] - (
+                        descriptor.minImage[x * height + y]
+                        - minImageMean + mean_z);
+                denominator = descriptor.v[x * height + y];
+                switch(correctionMode)
+                {
+                    case ZERO_LIGHT_PRESERVED:
+                        floatArray[x][y] = (float) (
+                            ((enumerator / denominator) * mean_v) + mean_z);
+                        break;
+                    case DYNAMIC_RANGE_CORRECTED:
+                        floatArray[x][y] = (float) (
+                             (enumerator / denominator) * mean_v);
+                        break;
+                    case DIRECT:
+                        floatArray[x][y] = (float) (
+                            enumerator / denominator);
+                        break;
+                    default:
+                        log.error("Unrecognized correction mode.");
+                        break;
+                }
+            }
+        }
+        log.info("Image size {}, mean: {}",
+                 floatArray.length, CidreMath.mean(floatArray));
+        return floatArray;
+    }
+
     public void execute() throws Exception {
         if (!this.modelInitialised) {
             this.initializeModel();
@@ -119,7 +162,6 @@ public class ImageCorrection {
         int height = this.descriptor.imageSize.height;
 
         double[][] doubleArray;
-        float[][] floatArray;
         for (int i = 0; i < this.imageLoader.getNumberOfImages(); i++) {
             doubleArray = this.imageLoader.loadPlane(i);
             floatArray = this.correctPlane(doubleArray, width, height);
