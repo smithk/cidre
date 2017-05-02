@@ -87,6 +87,12 @@ public class BfModelWriter {
             this.descriptors.get(0).imageSize_small.height,
             this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
 
+        MetadataTools.populateMetadata(
+            this.metadata, 4, "minImage", false, "XYZCT", pixelType,
+            this.descriptors.get(0).imageSize.width,
+            this.descriptors.get(0).imageSize.height,
+            this.sizeZ, this.sizeC, this.sizeT, this.samplesPerPixel);
+
         this.writer = new OMETiffWriter();
         this.writer.setMetadataRetrieve(this.metadata);
         this.writer.setId(this.fileName);
@@ -132,18 +138,24 @@ public class BfModelWriter {
         int widthSmall = this.descriptors.get(0).imageSize_small.width;
         int heightSmall = this.descriptors.get(0).imageSize_small.height;
         for (int channel = 0; channel < this.sizeC; channel++) {
-            this.write(
-                this.descriptors.get(channel).v,
-                0, channel, width, height);
-            this.write(
-                this.descriptors.get(channel).z,
-                1, channel, width, height);
-            this.write(
-                this.descriptors.get(channel).v_small,
-                2, channel, widthSmall, heightSmall);
-            this.write(
-                this.descriptors.get(channel).z_small,
-                3, channel, widthSmall, heightSmall);
+            ModelDescriptor descriptor = this.descriptors.get(channel);
+            this.write(descriptor.v, 0, channel, width, height);
+        }
+        for (int channel = 0; channel < this.sizeC; channel++) {
+            ModelDescriptor descriptor = this.descriptors.get(channel);
+            this.write(descriptor.z, 1, channel, width, height);
+        }
+        for (int channel = 0; channel < this.sizeC; channel++) {
+            ModelDescriptor descriptor = this.descriptors.get(channel);
+            this.write(descriptor.v_small, 2, channel, widthSmall, heightSmall);
+        }
+        for (int channel = 0; channel < this.sizeC; channel++) {
+            ModelDescriptor descriptor = this.descriptors.get(channel);
+            this.write(descriptor.z_small, 3, channel, widthSmall, heightSmall);
+        }
+        for (int channel = 0; channel < this.sizeC; channel++) {
+            ModelDescriptor descriptor = this.descriptors.get(channel);
+            this.write(descriptor.minImage, 4, channel, width, height);
         }
     }
 
