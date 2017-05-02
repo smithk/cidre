@@ -50,6 +50,9 @@ public class Main {
     @Arg
     private Boolean overwrite;
 
+    @Arg
+    private Options.CorrectionMode illuminationCorrectionMode;
+
     private static final Logger log =
         LoggerFactory.getLogger(Main.class);
 
@@ -196,6 +199,9 @@ public class Main {
                 this.input.get(0), this.output,
                 this.modelFile, this.modelOutput,
                 this.useMinImage, this.skipPreprocessing);
+            if (this.channels != null && this.channels.size() > 0) {
+                cidre.setChannelsToProcess(this.channels);
+            }
             cidre.execute();
         } else if (!this.planePerFile) {
             for (String fileName : this.input) {
@@ -203,6 +209,9 @@ public class Main {
                     fileName, this.output,
                     this.modelFile, this.modelOutput,
                     this.useMinImage, this.skipPreprocessing);
+                if (this.channels != null && this.channels.size() > 0) {
+                    cidre.setChannelsToProcess(this.channels);
+                }
                 cidre.execute();
             }
         } else if (this.planePerFile && this.input.size() > 1) {
