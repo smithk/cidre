@@ -44,7 +44,8 @@ public class Cidre {
 
     private final double lambdaZDefaultValue = 0.5;
 
-    ArrayList<ModelDescriptor> descriptors = null;
+    private ArrayList<ModelDescriptor> descriptors =
+        new ArrayList<ModelDescriptor> ();
 
     private String input = null;
 
@@ -97,7 +98,21 @@ public class Cidre {
         this.skipPreProcessing = skipPreprocessing;
     }
 
+    private void printSettings() {
+        log.info("CIDRE settings:\n"
+                 + "\tInput file:        {}\n"
+                 + "\tOutput Dir:        {}\n"
+                 + "\tModel input:       {}\n"
+                 + "\tModel output:      {}\n"
+                 + "\tuseMinImage:       {}\n"
+                 + "\tskipPreprocessing: {}",
+                 this.input, this.outputDir, this.modelInput,
+                 this.modelOutputDir, this.useMinImage, this.skipPreProcessing
+        );
+    }
+
     public void execute() throws Exception {
+        this.printSettings();
         if (this.input == null) {
             throw new Exception("No input or empty.");
         }
@@ -130,6 +145,7 @@ public class Cidre {
     public ArrayList<ModelDescriptor> buildModel()
     {
         log.info("Building CIDRE model");
+        this.descriptors.clear();
         Options options = new Options();
         this.imageLoader = new BfImageLoader(options, this.input);
         try {
