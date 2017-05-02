@@ -18,6 +18,7 @@ import loci.common.services.ServiceFactory;
 import loci.formats.FormatTools;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
+import loci.formats.out.OMETiffWriter;
 import loci.formats.out.TiffWriter;
 import loci.formats.services.OMEXMLService;
 
@@ -61,6 +62,11 @@ public class Cidre {
 
     private boolean skipPreProcessing = false;
 
+    private ArrayList<Integer> channelsToProcess;
+
+    private Options.CorrectionMode correctionMode =
+        Options.CorrectionMode.ZERO_LIGHT_PRESERVED;
+
     public Cidre(String fileName, String outputDir) {
         this.input = fileName;
         this.outputDir = outputDir;
@@ -76,6 +82,10 @@ public class Cidre {
         this.modelOutputDir = modelOutputDir;
         this.useMinImage = useMinImage;
         this.skipPreProcessing = skipPreprocessing;
+    }
+
+    public void setChannelsToProcess(ArrayList<Integer> channelsToProcess) {
+        this.channelsToProcess = channelsToProcess;
     }
 
     public void setModelInput(String modelInput) {
@@ -160,9 +170,16 @@ public class Cidre {
         log.info("Building model from {} images [{}, {}]",
                  this.imageLoader.getSizeS(), this.imageLoader.getWidth(),
                  this.imageLoader.getHeight());
-        for (int channel = 0;
-             channel < this.imageLoader.getSizeC(); channel++)
+        if (this.channelsToProcess != null
+            && this.channelsToProcess.size() == 0)
         {
+            for (int channel = 0; channel < this.imageLoader.getSizeC();
+                 channel++)
+            {
+                this.channelsToProcess.add(channel);
+            }
+        }
+        for (int channel : this.channelsToProcess) {
             try {
                 this.imageLoader.loadImages(channel);
             } catch (Exception e) {
@@ -216,10 +233,11 @@ public class Cidre {
 
     public void saveModel(ArrayList<ModelDescriptor> descriptor) throws Exception
     {
-        log.info("Saving model to {}", this.modelOutputDir);
-        File modelOut = new File(this.modelOutputDir);
-        String fileName = modelOut.getName().split("\\.")[0] + ".ill.cor.ome.tif";
-        fileName = this.outputDir + File.separator + fileName;
+        File inputFile = new File(this.input);
+        String fileName = inputFile.getName().split("\\.")[0]
+                        + ".ill.cor.ome.tif";
+        fileName = this.modelOutputDir + File.separator + fileName;
+        log.info("Saving model to {}", fileName);
         BfModelWriter writer = new BfModelWriter(fileName, descriptors);
         writer.saveModel();
     };
@@ -236,39 +254,45 @@ public class Cidre {
         ServiceFactory factory = new ServiceFactory();
         OMEXMLService service = factory.getInstance(OMEXMLService.class);
         IMetadata meta = service.createOMEXMLMetadata();
+        for (int s = 0; s < this.imageLoader.getSizeS(); s++) {
+            MetadataTools.populateMetadata(
+                meta, s, null, false, "XYZCT",
+                FormatTools.getPixelTypeString(FormatTools.FLOAT),
+                this.imageLoader.getWidth(), this.imageLoader.getHeight(),
+                1, this.channelsToProcess.size(), 1, 1);
+        }
+        OMETiffWriter writer = new OMETiffWriter();
+        writer.setMetadataRetrieve(meta);
+        File inputFile = new File(this.input);
+        String fileName = inputFile.getName().split("\\.")[0]
+                        + "_corrected.ome.tif";
+        fileName = this.outputDir + File.separator + fileName;
+        writer.setId(fileName);
+        int width = this.imageLoader.getWidth();
+        int height = this.imageLoader.getHeight();
         int channel = 0, timepoint = 0, zPlane = 0;
+        ModelDescriptor descriptor;
         double[][] pixels;
         float[][] pixelsFloat;
-        String fileName;
-        ImageCorrection corrector = new ImageCorrection(
-            this.descriptors.get(channel),
-            Options.CorrectionMode.DYNAMIC_RANGE_CORRECTED,
-            this.outputDir, this.imageLoader);
-        MetadataTools.populateMetadata(
-            meta, 0, null, false, "XYZCT",
-            FormatTools.getPixelTypeString(FormatTools.FLOAT),
-            this.imageLoader.getWidth(), this.imageLoader.getHeight(),
-            1, 1, 1, 1);
         for (int s = 0; s < this.imageLoader.getSizeS(); s++) {
-            pixels = this.imageLoader.loadPlane(
-                s, channel, timepoint, zPlane);
-            pixelsFloat = corrector.correctPlane(pixels);
-            fileName = this.outputDir + File.separator
-                     + "Output_" + String.format("%03d", s) + ".tif";
-            TiffWriter writer = new TiffWriter();
-            writer.setMetadataRetrieve(meta);
-            writer.setId(fileName);
-            int width = this.imageLoader.getWidth();
-            int height = this.imageLoader.getHeight();
-            ByteBuffer buffer = ByteBuffer.allocate(4 * width * height);
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    buffer.putFloat(pixelsFloat[x][y]);
+            writer.setSeries(s);
+            for (int c = 0; c < this.channelsToProcess.size(); c++) {
+                channel = this.channelsToProcess.get(c);
+                descriptor = this.descriptors.get(c);
+                pixels = this.imageLoader.loadPlane(
+                    s, channel, timepoint, zPlane);
+                pixelsFloat = ImageCorrection.correctPlane(
+                    pixels, descriptor, this.correctionMode);
+                ByteBuffer buffer = ByteBuffer.allocate(4 * width * height);
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        buffer.putFloat(pixelsFloat[x][y]);
+                    }
                 }
+                writer.saveBytes(c, buffer.array());
             }
-            writer.saveBytes(0, buffer.array());
-            writer.close();
         }
+        writer.close();
     };
 
     private void printOptions(Options options){
