@@ -7,6 +7,7 @@ public class ModelDescriptor {
     public Dimension imageSize;
     public double[] v;
     public double[] z;
+    public double[] minImage;
 
     public Dimension imageSize_small;
     public double[] v_small;
