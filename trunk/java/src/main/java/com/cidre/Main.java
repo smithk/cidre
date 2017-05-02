@@ -24,7 +24,7 @@ public class Main {
     private ArrayList<String> input;
 
     @Arg
-    private ArrayList<String> modelFiles;
+    private String modelFile;
 
     @Arg
     private String modelOutput;
@@ -64,11 +64,9 @@ public class Main {
                    + "file path masks are valid inputs.\n"
                    + "One model file per input file will be created unless "
                    + "`planePerFile` flag is specified.");
-        parser.addArgument("--modelFiles")
+        parser.addArgument("--model")
               .nargs("*")
-              .help("Select files or directory with model files."
-                  + "One model file per input file is required unless"
-                  + " `planePerFile` flag is specified.");
+              .help("Select a file with the model to apply.");
         parser.addArgument("--modelOutput")
               .help("Output directory.\n"
                   + "A multi-channel model file per input file / set of files "
@@ -192,23 +190,22 @@ public class Main {
             root.setLevel(Level.INFO);
         }
 
-        ArrayList<String> fileNames = this.getFileList(this.input);
-        if (this.planePerFile && this.input.size() == 1
-            && this.modelFiles.size() == 1)
+        if (this.planePerFile && this.input.size() == 1)
         {
             Cidre cidre = new Cidre(
                 this.input.get(0), this.output,
-                this.modelFiles.get(0), this.modelOutput,
+                this.modelFile, this.modelOutput,
                 this.useMinImage, this.skipPreprocessing);
             cidre.execute();
         } else if (!this.planePerFile) {
-            for (String fileName : fileNames) {
-                Cidre cidre = new Cidre(fileName, this.output);
+            for (String fileName : this.input) {
+                Cidre cidre = new Cidre(
+                    fileName, this.output,
+                    this.modelFile, this.modelOutput,
+                    this.useMinImage, this.skipPreprocessing);
                 cidre.execute();
             }
-        } else if (this.planePerFile &&
-                   (this.input.size() > 1 || this.modelFiles.size() > 1))
-        {
+        } else if (this.planePerFile && this.input.size() > 1) {
             throw new Exception(
                 "For `planePerFile` option single input Directory or "
                 + " a file name mask expected. Use wildcard cahracter `*`"
