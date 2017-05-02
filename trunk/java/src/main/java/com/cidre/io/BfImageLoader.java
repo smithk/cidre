@@ -632,4 +632,8 @@ public class BfImageLoader extends ImageLoader {
     public int getSizeS() {
         return this.sizeS;
     }
+
+    public int getSizeC() {
+        return this.sizeC;
+    }
 }
