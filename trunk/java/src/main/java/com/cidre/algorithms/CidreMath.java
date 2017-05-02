@@ -34,6 +34,20 @@ public class CidreMath {
         return sum / length;
     }
 
+    public static float mean(float[][] a) {
+        int i;
+        int j;
+        float sum = 0;
+        float length = 0.0f;
+        for (i = 0; i < a.length; i++) {
+            length += a[i].length;
+            for (j = 0; j < a[i].length; j++) {
+                sum += a[i][j];
+            }
+        }
+        return sum / length;
+    }
+
     public static double[][] min(List<double[][]> stack)
     {
         double[][] minImage = stack.get(0);
