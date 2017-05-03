@@ -162,7 +162,9 @@ public class Cidre {
             e.printStackTrace();
             return null;
         }
-        options.numberOfQuantiles = this.imageLoader.getSizeS();
+        if (this.skipPreProcessing) {
+            options.numberOfQuantiles = this.imageLoader.getSizeS();
+        }
         options.numImagesProvided = this.imageLoader.getSizeS();
         log.info("Building model from {} images [{}, {}]",
                  this.imageLoader.getSizeS(), this.imageLoader.getWidth(),
@@ -184,10 +186,12 @@ public class Cidre {
                 e.printStackTrace();
                 return null;
             }
-            double[] zLimits = CidreMath.zLimitsFromPercentiles(
-                this.imageLoader.getMinImage());
-            options.zLimits[0] = zLimits[0];
-            options.zLimits[1] = zLimits[1];
+            if (this.useMinImage) {
+                double[] zLimits = CidreMath.zLimitsFromPercentiles(
+                    this.imageLoader.getMinImage());
+                options.zLimits[0] = zLimits[0];
+                options.zLimits[1] = zLimits[1];
+            }
             ModelGenerator model = new ModelGenerator(options);
             ModelDescriptor descriptor = model.generate(
                 this.imageLoader.getStack());
@@ -273,6 +277,7 @@ public class Cidre {
         float[][] pixelsFloat;
         for (int s = 0; s < this.imageLoader.getSizeS(); s++) {
             writer.setSeries(s);
+            log.debug("Writing series: {}", s);
             for (int c = 0; c < this.channelsToProcess.size(); c++) {
                 channel = this.channelsToProcess.get(c);
                 descriptor = this.descriptors.get(c);
