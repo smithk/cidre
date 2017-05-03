@@ -169,9 +169,10 @@ public class Cidre {
         log.info("Building model from {} images [{}, {}]",
                  this.imageLoader.getSizeS(), this.imageLoader.getWidth(),
                  this.imageLoader.getHeight());
-        if (this.channelsToProcess != null
-            && this.channelsToProcess.size() == 0)
+        if (this.channelsToProcess == null ||
+            this.channelsToProcess.size() == 0)
         {
+            this.channelsToProcess = new ArrayList<Integer>();
             for (int channel = 0; channel < this.imageLoader.getSizeC();
                  channel++)
             {
