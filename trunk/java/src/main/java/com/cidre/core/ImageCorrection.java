@@ -54,8 +54,9 @@ public class ImageCorrection {
                 }
             }
         }
-        log.info("Image size {}, mean: {}",
-                 floatArray.length, CidreMath.mean(floatArray));
+        log.debug("Image size [{}, {}], mean: {}",
+                 floatArray.length, floatArray[0].length,
+                 CidreMath.mean(floatArray));
         return floatArray;
     }
 
