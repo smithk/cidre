@@ -154,7 +154,7 @@ public abstract class ImageLoader {
     }
 
     protected void preprocessData() {
-        log.info("Preprocessing data");
+        log.info("Preprocessing data, stack size: {}", S.size());
         // determine if sufficient intensity
         // information is provided by measuring entropy
 
