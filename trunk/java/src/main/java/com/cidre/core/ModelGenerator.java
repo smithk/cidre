@@ -37,8 +37,7 @@ public class ModelGenerator {
 
     private ZLimitsResult zLimitsResult;
 
-    public ModelGenerator(Options options)
-    {
+    public ModelGenerator(Options options)  {
         this.options = options;
     }
 
@@ -86,18 +85,18 @@ public class ModelGenerator {
         this.zLimitsResult = this.getZLimits(this.options, stackMin);
         
         log.info(
-           "Generating model with paramters\n" +
-           "lambdaVreg:         {}\n" +
-           "lambdaZero:         {}\n" +
-           "maxLbgfsIterations: {}\n" +
-           "zLimits:            [{} {}]\n" +
-           "imageSize:          [{}, {}]\n" +
-           "numImagesProvided:  {}\n" +
-           "bitDepth:           {}\n" +
-           "correctionMode:     {}\n" +
-           "targetNumPixels:    {}\n" +
-           "workingSize:        [{}, {}]\n" +
-           "numberOfQuantiles:  {}\n",
+           "Generating model with paramters:\n" +
+           "\tlambdaVreg:         {}\n" +
+           "\tlambdaZero:         {}\n" +
+           "\tmaxLbgfsIterations: {}\n" +
+           "\tzLimits:            [{} {}]\n" +
+           "\timageSize:          [{}, {}]\n" +
+           "\tnumImagesProvided:  {}\n" +
+           "\tbitDepth:           {}\n" +
+           "\tcorrectionMode:     {}\n" +
+           "\ttargetNumPixels:    {}\n" +
+           "\tworkingSize:        [{}, {}]\n" +
+           "\tnumberOfQuantiles:  {}\n",
            this.options.lambdaVreg, this.options.lambdaZero,
            this.options.maxLbgfsIterations,
            this.options.zLimits[0], this.options.zLimits[1],
@@ -193,11 +192,12 @@ public class ModelGenerator {
         double zy1 = x[2 * width * height + 1];
 
         // 2nd optimization using REGULARIZED ROBUST fitting
-        // use the mean standard error of the LS fitting to set the width of the
-        // CAUCHY function
+        // use the mean standard error of the LS fitting
+        // to set the width of the CAUCHY function
         double mse = computeStandardError(imageStack, v1, b1, Q);
 
-        // vector containing initial values of the variables we want to estimate
+        // vector containing initial values of the variables
+        // we want to estimate
         double[] x1 = new double[2 * width * height + 2];
 
         int pX1 = 0;
@@ -219,7 +219,8 @@ public class ModelGenerator {
         log.info("2nd Optimisation result fVal = {}; mean(x) = {}",
                  fval, CidreMath.mean(x));
 
-        // unpack the optimized v surface, b surface, xc, and yc from the vector x
+        // unpack the optimized v surface, b surface,
+        // xc, and yc from the vector x
         double[] v = Arrays.copyOfRange(x, 0, width * height);
         double[] b_pivoted = Arrays.copyOfRange(
             x, width * height, 2 * width * height);
@@ -248,7 +249,8 @@ public class ModelGenerator {
             }
         }
 
-        log.info("Computed mean(v): {}, mean(z):{}", CidreMath.mean(v), CidreMath.mean(z));
+        log.info("Computed mean(v): {}, mean(z):{}",
+                 CidreMath.mean(v), CidreMath.mean(z));
         this.descriptor = new ModelDescriptor();
         this.descriptor.imageSize = new Dimension(
             options.imageSize.width, options.imageSize.height);
@@ -279,7 +281,6 @@ public class ModelGenerator {
         double l0 = 9.5;
         // lambda_vreg for sufficient images 
         double l1 = 6;
-
         if (N < NMAX) {
             return l0 + ((l1 - l0) / (NMAX)) * N;
         } else {
@@ -289,7 +290,6 @@ public class ModelGenerator {
 
     private ZLimitsResult getZLimits(Options options, Double stackMin) {
         ZLimitsResult zLimitsResult = new ZLimitsResult();
-
         if (options.zLimits[0] != null) {
             zLimitsResult.zmin = options.zLimits[0];
             zLimitsResult.zmax = options.zLimits[1];
@@ -363,7 +363,7 @@ public class ModelGenerator {
         doubleValues = new double[mLength]; // for mean
         int[] cList = new int[mLength];
         int[] rList = new int[mLength];
-        
+
         for (i = 0; i < mLength; i++) {
             cList[i] = inds[mStart + i] / height;
             rList[i] = inds[mStart + i] % height;
@@ -378,7 +378,8 @@ public class ModelGenerator {
             Q[z] = CidreMath.mean(doubleValues);
         }
         log.info("Q mean value: {}", CidreMath.mean(Q));
-        String fileName = "/Users/emil/Documents/Data/HMS/output/details/Q.tif";
+        String fileName =
+            "/Users/emil/Documents/Data/HMS/output/details/Q.tif";
         BfImageWriter writer = new BfImageWriter(
                 fileName, depth, 1,
                 FormatTools.getPixelTypeString(FormatTools.DOUBLE));
@@ -637,7 +638,8 @@ public class ModelGenerator {
         log.debug(
             "Cdr_objective input: x: {}, cauchy: {}, pivotX: {},"
             + "pivotY: {}, method: {}, Q: {}, TERM: {}, lambda v: {},"
-            + " lambda_z: {}, z_max: {}, z_min: {}", CidreMath.mean(x), cauchy_w, pivotShiftX,
+            + " lambda_z: {}, z_max: {}, z_min: {}",
+            CidreMath.mean(x), cauchy_w, pivotShiftX,
             CidreMath.mean(pivotShiftY), method, CidreMath.mean(Q), TERM,
             LAMBDA_VREG, LAMBDA_ZERO, this.zLimitsResult.zmax,
             this.zLimitsResult.zmin);
@@ -646,7 +648,7 @@ public class ModelGenerator {
 
         // some basic definitions
         // the standard number of quantiles used for empirical parameter setting
-        int N_stan = 200;                
+        int N_stan = 200;
         // the barrier term coefficient
         double LAMBDA_BARR = 1e6;
         int depth = imageStack.size();
@@ -738,9 +740,9 @@ public class ModelGenerator {
             }
         }
         log.debug("mres: {}, energy_fit: {}, deriv_v_fit: {}, deriv_b_fit: {}",
-                 CidreMath.mean(mestimator_response), CidreMath.mean(energy_fit),
-                 CidreMath.mean(deriv_v_fit), CidreMath.mean(deriv_b_fit));
-
+                 CidreMath.mean(mestimator_response),
+                 CidreMath.mean(energy_fit), CidreMath.mean(deriv_v_fit),
+                 CidreMath.mean(deriv_b_fit));
 
         // normalize the contribution from fitting energy term by the number
         // of data points in imageStack
@@ -760,7 +762,8 @@ public class ModelGenerator {
         E_fit *= data_size_factor;      // fit term energy;
         log.debug("Size F: {}, Lambda_v: {}, Lambda_z: {}, Lambda_barr: {}",
                   data_size_factor, LAMBDA_VREG, LAMBDA_ZERO, LAMBDA_BARR);
-        log.debug("E_fit: {}, G_V: {}, G_B: {}", E_fit, CidreMath.mean(G_V_fit), CidreMath.mean(G_B_fit));
+        log.debug("E_fit: {}, G_V: {}, G_B: {}", E_fit,
+                  CidreMath.mean(G_V_fit), CidreMath.mean(G_B_fit));
 
         // spatial regularization of v
         // We compute the energy of the regularization term given v,b,zx,zy.
@@ -968,7 +971,8 @@ public class ModelGenerator {
         G[pG++] = G_ZX;
         G[pG++] = G_ZY;
 
-        log.debug("cdr_objective done Term str = {}; zx,zy = ({}, {}); E = {}; G = {}\n",
+        log.debug("cdr_objective done Term str = {}; "
+                  + "zx,zy = ({}, {}); E = {}; G = {}\n",
                   term_str, zx, zy, E, CidreMath.mean(G));
 
         ObjectiveResult result = new ObjectiveResult();
@@ -1605,7 +1609,8 @@ public class ModelGenerator {
                 wWeights[p][j] /= sum;
             }
         }
-        // Clamp out-of-range indices; has the effect of replicating end-points.
+        // Clamp out-of-range indices; has the effect of
+        // replicating end-points.
         for (int p = 0; p < P; p++) {
             for (int j = 0; j < newWidth; j++) {
                 wIndices[p][j]--;
@@ -1656,7 +1661,8 @@ public class ModelGenerator {
                 hWeights[p][j] /= sum;
             }
         }
-        // Clamp out-of-range indices; has the effect of replicating end-points.
+        // Clamp out-of-range indices; has the effect of replicating
+        // end-points.
         for (int p = 0; p < P; p++) {
             for (int j = 0; j < newHeight; j++) {
                 hIndices[p][j]--;
