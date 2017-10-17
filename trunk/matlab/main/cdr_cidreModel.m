@@ -114,10 +114,12 @@ t1 = tic;
 %% 1st optimization using LEAST-SQUARES fitting
 
 % add minFunc, the LMBFGS optimizing software, to the path
-addpath([options.cidrePath '/3rdparty/minFunc2012/']);
-addpath([options.cidrePath '/3rdparty/minFunc2012/minFunc/']);
-addpath([options.cidrePath '/3rdparty/minFunc2012/minFunc/compiled/']);
-addpath([options.cidrePath '/3rdparty/minFunc2012/autoDif/']);
+if (~isdeployed)
+    addpath([options.cidrePath '/3rdparty/minFunc2012/']);
+    addpath([options.cidrePath '/3rdparty/minFunc2012/minFunc/']);
+    addpath([options.cidrePath '/3rdparty/minFunc2012/minFunc/compiled/']);
+    addpath([options.cidrePath '/3rdparty/minFunc2012/autoDif/']);
+end
 
 % set the options for minFunc
 mf_opt.Method       = 'lbfgs';          % optitmization scheme
