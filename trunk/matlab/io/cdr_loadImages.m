@@ -104,7 +104,7 @@ if ischar(source)
         error('CIDRE:loadImages', 'Non-monochromatic image provided. CIDRE is designed for monochromatic images. Store each channel as a separate image and re-run CIDRE.'); 
     end
     options.image_size = size(I);
-    [R C] = determine_working_size(options.image_size, options.target_num_pixels);
+    [R C] = cdr_determine_working_size(options.image_size, options.target_num_pixels);
     options.working_size = [R C];
     
     
@@ -125,14 +125,13 @@ if ischar(source)
     
 else
     % source is a HxWxZ array containing the image stack
-    
     if isempty(options.image_size)
         warning('CIDRE:loadImages', 'Original image size not provided, assuming %d x %d (size of passed stack)\n', size(source,1), size(source,2));
         options.image_size = [size(source,1) size(source,2)];
     end
     
     % determine the working image size
-    [R C] = determine_working_size(options.image_size, options.target_num_pixels);
+    [R C] = cdr_determine_working_size(options.image_size, options.target_num_pixels);
     options.working_size = [R C];
     
     % store the number of source images provided in the stack
@@ -164,37 +163,3 @@ end
 % (x,y) image location, and compress the stack in the 3rd dimension to keep
 % the computation time manageable
 [S options] = cdr_preprocessData(S, maxI, options);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function [R_working C_working] = determine_working_size(image_size, N_desired)
-% determines a working image size based on the original image size and
-% the desired number of pixels in the working image, N_desired
-
-
-R_original = image_size(1);
-C_original = image_size(2);
-
-scale_working = sqrt( N_desired/(R_original*C_original));
-
-R_working = round(R_original * scale_working);
-C_working = round(C_original * scale_working);
-
-
-
-
-
-
-
-
