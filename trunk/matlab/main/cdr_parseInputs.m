@@ -49,7 +49,7 @@ options.folder_source           = [];
 options.folder_destination      = [];
 options.filenames               = {};
 options.num_images_provided     = [];
-options.bit_depth               = [];   % specified as maximum integer: 2^8, 2^12, 2^16
+options.bit_depth               = [];   % specified as maximum integer: 2^8, 2^12, 2^14, 2^16
 options.correction_mode         = [];   % 0 ='illumination preserving' (default), 1='zero-light_perserving', or 2='direct'
 options.handles                 = [];   % used for GUI handles
 
@@ -58,8 +58,6 @@ options.target_num_pixels     	= 9400;
 options.working_size            = [];
 options.number_of_quantiles     = 200;
 %options.lambda_barr             = [];
-
-
 
 
 
@@ -79,6 +77,8 @@ for i = 1:numel(v)
                 options.max_lbfgs_iterations = getParam(v,i);
             case 'image_size'
                 options.image_size = getParam(v,i);
+                [R, C] = cdr_determine_working_size(options.image_size, options.target_num_pixels);
+                options.working_size = [R, C];
             case 'bit_depth'    
                 options.bit_depth = getParam(v,i);
             case 'correction_mode'
@@ -87,13 +87,13 @@ for i = 1:numel(v)
                 options.folder_destination = getFolder(v,i);            
             end       
     end
-    
+
     if isstruct(v{i})
         options.handles = v{i};
     end
 end
 
-% check for other important input warnings 
+% check for other important input warnings
 if isempty(options.folder_destination)
     warning('CIDRE:parseInput', 'No destination folder was specified. CIDRE will not store corrected images.\n');
 end
@@ -105,7 +105,6 @@ options = orderfields(options);
 
 
 function param = getParam(v,i)
-
 param = [];
 if i+1 <= numel(v)
     if isnumeric(v{i+1})
@@ -117,15 +116,14 @@ end
 
 
 function param = getFolder(v,i)
-
 param = [];
 if i+1 <= numel(v)
     if isdir(v{i+1})
         param = v{i+1};
     else
-        if isstr(v{i+1});
+        if ischar(v{i+1});
             param = v{i+1};
-            [success message] = mkdir(param);
+            [success, message] = mkdir(param);
             if ~success
                 warning('CIDRE:parseInput', message);
             end
