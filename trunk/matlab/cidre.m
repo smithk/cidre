@@ -74,7 +74,7 @@ function model = cidre(source, varargin)
 
 
 % add necessary paths
-if (~isdeployed)
+if not(isdeployed)
     p = mfilename('fullpath');
     p = p(1:end-5);
     addpath([p '/3rdparty/']); 
