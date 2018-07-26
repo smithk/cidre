@@ -70,14 +70,16 @@ function options = get_bit_depth(options, maxI)
 % depth is estimated from the max observed intensity, maxI.
 
 if ~isempty(options.bit_depth)
-    if ~ismember(options.bit_depth, [2^8 2^12 2^16])
+    if ~ismember(options.bit_depth, [2^8 2^12 2^14 2^16])
         error('CIDRE:loadImages', 'Provide bit depth as max integer value, eg 2^12');
     else
         fprintf(' %d-bit depth\n', log2(options.bit_depth));
     end
 else    
-    if maxI > 2^12
+    if maxI > 2^14
         options.bit_depth = 2^16;
+    elseif maxI > 2^12
+        options.bit_depth = 2^14;
     elseif maxI > 2^8
         options.bit_depth = 2^12;
     else

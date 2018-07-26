@@ -319,6 +319,8 @@ switch contents{get(hObject,'Value')}
         handles.bit_depth = 2^8;
     case '12-bit'
         handles.bit_depth = 2^12;
+    case '14-bit'
+        handles.bit_depth = 2^14;
     case '16-bit'
         handles.bit_depth = 2^16;
 end
