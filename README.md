@@ -7,7 +7,7 @@ CIDRE is a retrospective illumination correction method for optical microscopy. 
 <ol>
 <li>
 K. Smith, Y. Li, F. Ficcinini, G. Csucs, A. Bevilacqua, and P. Horvath<br>
-<a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.3323.html">CIDRE: An Illumination Correction Method for Optical Microscopy</a>,
+<a href="https://www.nature.com/articles/nmeth.3323">CIDRE: An Illumination Correction Method for Optical Microscopy</a>,
 Nature Methods, <em>Early Online Access 16 March 2015</em>, doi:10.1038/NMETH.3323
 </li>
 </ol>.
