@@ -3,7 +3,9 @@ CIDRE
 
 About
 -----
-CIDRE is a general illumination correction method for optical microscopy. It is designed to correct collections of images by building a model of the illumination distortion directly from the image data. Larger image collections provide more robust corrections. Details of the method are described in [].
+CIDRE is a general illumination correction method for optical microscopy. It is designed to correct collections of images by building a model of the illumination distortion directly from the image data. Larger image collections provide more robust corrections. Details of the method are described in
+
+1. K. Smith, Y. Li, F. Ficcinini, G. Csucs, A. Bevilacqua, and P. Horvath, [CIDRE: an illumination-correction method for optical microscopy](https://www.nature.com/articles/nmeth.3323), _Nature Methods_, 12, pages404–406 (2015)
 
 Contents
 --------
